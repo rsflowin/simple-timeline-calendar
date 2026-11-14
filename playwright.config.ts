@@ -10,7 +10,8 @@ export default defineConfig({
   use: { baseURL: `http://localhost:${PORT}`, trace: 'retain-on-failure' },
   projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
   webServer: {
-    command: `npx vite --port ${PORT} --strictPort`,
+    // CI tests the production build (`npm run build` runs before this step)
+    command: `npx vite ${process.env.CI ? 'preview ' : ''}--port ${PORT} --strictPort`,
     url: `http://localhost:${PORT}`,
     reuseExistingServer: !process.env.CI,
   },

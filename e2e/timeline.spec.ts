@@ -1,22 +1,25 @@
 import { readFile } from 'node:fs/promises';
 import { expect, test, type Page } from '@playwright/test';
+import { PX_PER_DAY } from '../src/domain/scale.ts';
 import { drag, openApp } from './helpers.ts';
 
-const DAY_PX = 32; // PX_PER_DAY.day
-const HEADER_PX = 49; // two 24px header rows + border
+const DAY_PX = PX_PER_DAY.day;
 
 test.beforeEach(async ({ page }) => {
   await openApp(page);
-  await page.getByRole('group', { name: 'Zoom' }).getByRole('button', { name: 'Day' }).click();
+  const day = page.getByRole('group', { name: 'Zoom' }).getByRole('button', { name: 'Day' });
+  await day.click();
+  await expect(day).toHaveAttribute('aria-pressed', 'true');
 });
 
-/** Viewport point at the middle of the day `offset` days from today, in row `row`. Today is centred on load. */
-async function dayPoint(page: Page, offset: number, row = 0): Promise<[number, number]> {
+/** Viewport point in the first row, at the middle of the day `offset` days from today (centred on load). */
+async function dayPoint(page: Page, offset: number): Promise<[number, number]> {
   const box = await page.getByRole('region', { name: 'Timeline' }).evaluate((el) => ({
     x: el.getBoundingClientRect().left + el.clientWidth / 2,
-    y: el.getBoundingClientRect().top,
+    // scroller > content > sticky header; the grid starts below it
+    gridTop: el.firstElementChild!.firstElementChild!.getBoundingClientRect().bottom,
   }));
-  return [box.x + offset * DAY_PX, box.y + HEADER_PX + row * 32 + 16];
+  return [box.x + offset * DAY_PX, box.gridTop + 12];
 }
 
 /** Drag across days `from`..`to` (offsets from today) and name the task in quick-create. */

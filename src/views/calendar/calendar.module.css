@@ -281,7 +281,13 @@
 }
 
 .miniDay.today {
-  box-shadow: inset 0 0 0 2px var(--color-today-line);
+  outline: 2px solid var(--color-today-line);
+  outline-offset: 1px;
+}
+
+/* the focus ring on today: same place, focus colour */
+.miniDay.today:focus-visible {
+  outline-color: var(--color-selection);
 }
 
 .dayHead {

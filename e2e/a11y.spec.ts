@@ -66,6 +66,12 @@ test('keyboard: Tab reaches a bar, Enter opens it, Delete deletes it', async ({ 
   await page.keyboard.press('Escape');
   await expect(bar).toBeFocused();
 
+  // still selected, but Delete from the toolbar must not delete it
+  await page.getByRole('button', { name: 'Pack rows' }).focus();
+  await page.keyboard.press('Delete');
+  await expect(bar).toHaveCount(1);
+
+  await bar.focus();
   await page.keyboard.press('Delete');
   await expect(bar).toHaveCount(0);
   await expect(page.getByRole('region', { name: 'Timeline' })).toBeFocused();

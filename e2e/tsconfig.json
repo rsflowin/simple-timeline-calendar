@@ -1,0 +1,10 @@
+{
+  "extends": "../tsconfig.node.json",
+  "compilerOptions": {
+    "tsBuildInfoFile": "../node_modules/.tmp/tsconfig.e2e.tsbuildinfo",
+    // e2e imports app modules (src/domain), which use extensionless bundler-style imports
+    "module": "esnext",
+    "moduleResolution": "bundler"
+  },
+  "include": ["."]
+}

@@ -20,7 +20,8 @@ const timeline = createRef<TimelineHandle>();
 const calendar = createRef<CalendarHandle>();
 const deleteSelected = () => {
   const id = useUi.getState().selectedId;
-  if (!id) return;
+  // only from inside the view: Delete on a toolbar button must not hit an off-screen selection
+  if (!id || !document.activeElement?.closest('main')) return;
   roadmap.commit((d) => deleteTask(d, id));
   ui.select(null);
   // the focused bar is gone; don't drop focus to <body> (NF-4). Only one view is mounted.
