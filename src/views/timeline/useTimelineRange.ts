@@ -63,6 +63,7 @@ export function useTimelineRange(zoom: Zoom, initialDay: DayIndex) {
   const scrollToDay = useCallback((day: DayIndex) => {
     centre.current = day + 0.5;
     setSt((s) => {
+      // A new object even when the range fits, so the layout effect runs and applies `centre`.
       if (day >= s.from && day < s.to) return { ...s };
       const [from, to] = rangeAround(s.zoom, day);
       return { ...s, from, to };

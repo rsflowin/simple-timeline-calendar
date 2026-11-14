@@ -1,6 +1,7 @@
 import {
   useEffect,
   useImperativeHandle,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -32,12 +33,13 @@ import { TimelineHeader } from './TimelineHeader';
 import { useTimelineRange } from './useTimelineRange';
 import styles from './timeline.module.css';
 
-export const ROW_HEIGHT = 32;
+const ROW_HEIGHT = 32;
 const BAR_HEIGHT = 24;
 const BAR_INSET = (ROW_HEIGHT - BAR_HEIGHT) / 2;
 
 export interface TimelineHandle {
   scrollToDay(day: DayIndex): void;
+  focus(): void;
 }
 
 interface Range {
@@ -53,9 +55,18 @@ export function TimelineView({ ref }: { ref?: Ref<TimelineHandle> }) {
   const selectedId = useUi((s) => s.selectedId);
   const today = toDayIndex(todayISO());
   const { ref: scroller, st, sync, scrollToDay } = useTimelineRange(zoom, today);
-  useImperativeHandle(ref, () => ({ scrollToDay }), [scrollToDay]);
+  useImperativeHandle(
+    ref,
+    () => ({ scrollToDay, focus: () => scroller.current?.focus({ preventScroll: true }) }),
+    [scrollToDay, scroller],
+  );
   const { from, to, win } = st;
   const px = PX_PER_DAY[st.zoom];
+  // Drag callbacks outlive the render that started them; the range may grow mid-drag.
+  const live = useRef({ from, px });
+  useLayoutEffect(() => {
+    live.current = { from, px };
+  });
 
   const grid = useRef<HTMLDivElement>(null);
   /** Dashed bar while drag-creating, kept until quick-create closes (TL-11). */
@@ -80,10 +91,12 @@ export function TimelineView({ ref }: { ref?: Ref<TimelineHandle> }) {
   const x = (day: number) => (day - from) * px;
 
   const onGridPointerDown = (e: PointerEvent<HTMLDivElement>) => {
-    if (e.button !== 0) return;
+    // Only empty space: bars handle their own presses, everything else ignores the pointer.
+    if (e.button !== 0 || e.target !== e.currentTarget) return;
     e.preventDefault();
     const rect = () => grid.current!.getBoundingClientRect();
-    const at = (clientX: number) => dayAt(from, px, clientX - rect().left);
+    const at = (clientX: number) =>
+      dayAt(live.current.from, live.current.px, clientX - rect().left);
     const d0 = at(e.clientX);
     const row = Math.max(0, Math.floor((e.clientY - rect().top) / ROW_HEIGHT));
     const draftAt = (clientX: number) => {
@@ -96,12 +109,13 @@ export function TimelineView({ ref }: { ref?: Ref<TimelineHandle> }) {
         const [start, end] = moved ? rangeBetween(d0, at(ev.clientX)) : unitRange(st.zoom, d0);
         setDraft({ start, end, row });
         const g = rect();
+        const { from, px } = live.current;
         // Opened after pointerup: the popover closes on any pointerdown outside it.
         useUi.getState().openQuickCreate({
           start: fromDayIndex(start),
           end: fromDayIndex(end),
           anchor: new DOMRect(
-            g.left + x(start),
+            g.left + (start - from) * px,
             g.top + row * ROW_HEIGHT + BAR_INSET,
             (end - start + 1) * px,
             BAR_HEIGHT,
@@ -120,12 +134,11 @@ export function TimelineView({ ref }: { ref?: Ref<TimelineHandle> }) {
   const onBarPointerDown = (e: PointerEvent<HTMLButtonElement>, s: TaskSpan) => {
     if (e.button !== 0) return;
     e.preventDefault();
-    e.stopPropagation(); // not a create gesture
     const handle = (e.target as HTMLElement).dataset.handle;
     const kind: DragKind =
       handle === 'start' ? 'resize-start' : handle === 'end' ? 'resize-end' : 'move';
     const bar = e.currentTarget;
-    const dragged = (dx: number) => applyDrag(s, kind, Math.round(dx / px));
+    const dragged = (dx: number) => applyDrag(s, kind, Math.round(dx / live.current.px));
     startPointerDrag(e, {
       onMove: (dx) => setPreview({ id: s.id, ...dragged(dx) }),
       onEnd: (dx, _dy, _ev, moved) => {

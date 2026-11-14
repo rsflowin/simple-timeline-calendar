@@ -21,6 +21,7 @@ const deleteSelected = () => {
   if (!id) return;
   roadmap.commit((d) => deleteTask(d, id));
   ui.select(null);
+  timeline.current?.focus(); // the focused bar is gone; don't drop focus to <body> (NF-4)
 };
 const goToToday = () => timeline.current?.scrollToDay(toDayIndex(todayISO()));
 

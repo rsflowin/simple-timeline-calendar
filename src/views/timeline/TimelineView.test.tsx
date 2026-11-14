@@ -1,12 +1,14 @@
 // @vitest-environment jsdom
 import { act, fireEvent, render, screen } from '@testing-library/react';
+import { createRef } from 'react';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { fromDayIndex, todayISO, toDayIndex } from '../../domain/dates';
 import type { RoadmapDoc, Task } from '../../domain/types';
 import { usePrefs } from '../../store/prefsStore';
 import { useRoadmap } from '../../store/roadmapStore';
 import { useUi } from '../../store/uiStore';
-import { TimelineView } from './TimelineView';
+import { QuickCreate } from '../../components/QuickCreate';
+import { TimelineView, type TimelineHandle } from './TimelineView';
 
 const today = toDayIndex(todayISO());
 const task = (id: string, start: number, end: number, tagIds: string[] = []): Task => ({
@@ -75,5 +77,26 @@ describe('TimelineView', () => {
     useRoadmap.getState().reset({ tags: [], tasks: [task('far', 5000, 5001), task('near', 0, 0)] });
     render(<TimelineView />);
     expect(screen.getAllByRole('button').map((b) => b.textContent)).toEqual(['Task near']);
+  });
+
+  it('jumping far away re-centres the range instead of stretching it', () => {
+    useRoadmap.getState().reset({ tags: [], tasks: [task('far', 5000, 5001), task('near', 0, 0)] });
+    const ref = createRef<TimelineHandle>();
+    render(<TimelineView ref={ref} />);
+    act(() => ref.current!.scrollToDay(today + 5000));
+    expect(screen.getAllByRole('button').map((b) => b.textContent)).toEqual(['Task far']);
+  });
+
+  it('pressing a bar closes an open quick-create', () => {
+    render(
+      <>
+        <TimelineView />
+        <QuickCreate />
+      </>,
+    );
+    const anchor = new DOMRect(0, 0, 10, 10);
+    act(() => useUi.getState().openQuickCreate({ start: '2026-01-01', end: '2026-01-01', anchor }));
+    fireEvent.pointerDown(screen.getByRole('button', { name: /^Task a,/ }), { button: 0 });
+    expect(useUi.getState().quickCreate).toBeNull();
   });
 });

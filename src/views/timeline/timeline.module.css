@@ -122,7 +122,8 @@
   position: absolute;
   top: 0;
   bottom: 0;
-  width: 6px;
+  /* short bars keep at least half their width as body, so they can still be moved */
+  width: min(6px, 25%);
   cursor: ew-resize;
 }
 
