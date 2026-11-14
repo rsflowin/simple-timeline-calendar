@@ -212,7 +212,7 @@ an existing task.
   is `Create "<text>"`. Enter on it creates the tag with the next colour in the
   palette rotation and selects it.
 - **TAG-4** Backspace in an empty field removes the last chip.
-- **TAG-5** Tag manager (from the toolbar's Tags menu): rename, change colour,
+- **TAG-5** Tag manager (toolbar menu → Manage tags): rename, change colour,
   delete. Deleting a tag removes it from all tasks (one undo step).
 
 ---
