@@ -17,6 +17,10 @@
   --color-danger: #c4352b;
   --color-warning-bg: #fbf3db;
   --color-warning-fg: #765b0f;
+  /* Year view: days covered by 1 / 2 / 3+ tasks (level 3 takes --color-on-accent text) */
+  --color-heat-1: #dcebfb;
+  --color-heat-2: #a7cbf1;
+  --color-heat-3: #1b6fc2;
 
   --tag-blue-bg: #e7f3f8;
   --tag-blue-fg: #1f5f8b;

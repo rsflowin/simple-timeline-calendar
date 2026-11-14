@@ -166,3 +166,52 @@ describe('CalendarView — week', () => {
     expect(bars('a')[0]).toHaveTextContent(/^Task aFirst line$/);
   });
 });
+
+describe('CalendarView — year', () => {
+  beforeEach(() => {
+    useUi.setState({ quickCreate: null, editing: null, selectedId: null });
+    usePrefs.setState({
+      calendarMode: 'year',
+      cursor: '2026-11-13',
+      packRows: true,
+      tagFilter: [],
+    });
+    useRoadmap.getState().reset({
+      tags: [],
+      tasks: [
+        task('a', '2026-11-12', '2026-11-13'),
+        task('b', '2026-11-13', '2026-11-13'),
+        task('c', '2026-11-13', '2026-11-14'),
+        task('d', '2026-11-13', '2026-11-13'),
+        task('e', '2026-11-14', '2026-11-14'),
+      ],
+    });
+  });
+
+  const day = (name: string) => screen.getByRole('button', { name });
+
+  it('shades days by task count 1 / 2 / 3+ (CAL-9, CAL-10)', () => {
+    render(<CalendarView />);
+    expect(screen.getByRole('button', { name: 'January' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'December' })).toBeInTheDocument();
+    expect(day('Nov 12, 1 task')).toHaveAttribute('data-level', '1');
+    expect(day('Nov 14, 2 tasks')).toHaveAttribute('data-level', '2');
+    expect(day('Nov 13, 4 tasks')).toHaveAttribute('data-level', '3');
+    expect(day('Nov 15, 0 tasks')).not.toHaveAttribute('data-level');
+  });
+
+  it('a day lists its tasks and can add one there (CAL-11)', () => {
+    render(<CalendarView />);
+    fireEvent.click(day('Nov 14, 2 tasks'));
+    const pop = screen.getByRole('dialog', { name: 'Tasks on Nov 14' });
+    expect(pop).toHaveTextContent('Task cTask e+ Add task');
+    fireEvent.click(screen.getByRole('button', { name: '+ Add task' }));
+    expect(useUi.getState().quickCreate).toMatchObject({ start: '2026-11-14', end: '2026-11-14' });
+  });
+
+  it('clicking a month name opens Month view for it (CAL-12)', () => {
+    render(<CalendarView />);
+    fireEvent.click(screen.getByRole('button', { name: 'March' }));
+    expect(usePrefs.getState()).toMatchObject({ calendarMode: 'month', cursor: '2026-03-01' });
+  });
+});

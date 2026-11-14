@@ -6,6 +6,7 @@ import { useDoc } from '../../store/roadmapStore';
 import { MonthView } from './MonthView';
 import { useCalendarGestures } from './useCalendarGestures';
 import { WeekView } from './WeekView';
+import { YearView } from './YearView';
 import styles from './calendar.module.css';
 
 export interface CalendarHandle {
@@ -38,6 +39,7 @@ export function CalendarView({ ref }: { ref?: Ref<CalendarHandle> }) {
     >
       {mode === 'week' && <WeekView cursor={cursor} g={g} />}
       {mode === 'month' && <MonthView cursor={cursor} g={g} />}
+      {mode === 'year' && <YearView cursor={cursor} spans={spans} />}
     </div>
   );
 }
