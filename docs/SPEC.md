@@ -200,7 +200,8 @@ an existing task.
 - **TD-4** Save (Ctrl/⌘+Enter) and Cancel (Esc). Existing tasks also have
   Delete.
 - **TD-5** Saving is one undo step. Deleting is one undo step (no confirm
-  prompt — undo is the safety net).
+  prompt — undo is the safety net). A tag created from the dialog's TagInput
+  is saved at once as its own undo step and stays if the dialog is cancelled.
 
 ### 5.3 TagInput (Notion-style)
 

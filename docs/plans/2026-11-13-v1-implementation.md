@@ -1623,6 +1623,8 @@ Timeline wiring:
 - Empty grid `pointerdown` → `d0 = dayAt(x)`; on move, draft = `rangeBetween(d0, dayAt(ev.clientX))`, drawn as a dashed bar; on end: range = `moved ? draft : unitRange(zoom, d0)` → `openQuickCreate({ start, end, anchor })`.
 - Bar `pointerdown`: target is the left handle → `'resize-start'`, right handle → `'resize-end'`, else `'move'`. On move: `preview = applyDrag(span, kind, Math.round(dx / px))`; the bar keeps its row during the drag and shows a date tooltip (TL-16). On end: `moved ? commit(updateTask(…fromDayIndex(preview)…)) : (select(id), openEdit(id))`. On cancel: clear preview.
 - Call `e.preventDefault()` on pointerdown to stop text selection.
+- When quick-create closes, return focus to the timeline scroller (or the new bar), not `<body>` (NF-4).
+- Every key handler must ignore IME composition: `if (e.isComposing || e.keyCode === 229) return;` (same rule as the existing components).
 
 > `shortcut:` no auto-scroll when dragging past the viewport edge. To move a task far, zoom out or use the dialog. Add auto-scroll if users ask.
 
