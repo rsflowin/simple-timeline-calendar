@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, type PointerEvent } from 'react';
 import { Popover } from '../../components/Popover';
 import { hiddenCounts, weekLanes } from '../../domain/calendar';
 import {
@@ -14,23 +14,32 @@ import { usePrefs } from '../../store/prefsStore';
 import { useDoc } from '../../store/roadmapStore';
 import { useUi } from '../../store/uiStore';
 import { taskColor } from '../taskColor';
-import { DATE_HEIGHT, LANE_HEIGHT, shownLanes } from './layout';
+import { DATE_HEIGHT, LANE_HEIGHT, shownLanes, type CalSpan } from './layout';
 import { openTask } from './openTask';
 import styles from './calendar.module.css';
 
 interface Props {
   weekStart: DayIndex;
-  spans: readonly TaskSpan[];
+  spans: readonly CalSpan[];
   /** Lanes that fit; more become `+N more` (CAL-4). Undefined = no cap. */
   maxLanes?: number;
   /** Dim days outside this month (CAL-1). */
   dimOutside?: { year: number; month: number };
+  draggingId: string | null;
+  onBarPointerDown(e: PointerEvent<HTMLButtonElement>, s: TaskSpan): void;
 }
 
 const pct = (days: number) => `${(days / 7) * 100}%`;
 
 /** One Mon–Sun row: day cells (`data-day`) with this week's pieces of the tasks on top (CAL-2, CAL-3). */
-export function WeekRow({ weekStart, spans, maxLanes, dimOutside }: Props) {
+export function WeekRow({
+  weekStart,
+  spans,
+  maxLanes,
+  dimOutside,
+  draggingId,
+  onBarPointerDown,
+}: Props) {
   const pack = usePrefs((s) => s.packRows);
   const tags = useDoc().tags;
   const selectedId = useUi((s) => s.selectedId);
@@ -61,27 +70,47 @@ export function WeekRow({ weekStart, spans, maxLanes, dimOutside }: Props) {
       {lanes.slice(0, shown).flatMap((lane, i) =>
         lane.map((seg) => {
           const s = seg.item;
-          const label = `${s.task.title}, ${formatRange(s.start, s.end)}`;
           const inL = seg.startsHere ? 2 : 0;
           const inR = seg.endsHere ? 2 : 0;
+          const box = {
+            left: `calc(${pct(seg.start - weekStart)} + ${inL}px)`,
+            width: `calc(${pct(seg.end - seg.start + 1)} - ${inL + inR}px)`,
+            top: DATE_HEIGHT + i * LANE_HEIGHT,
+          };
+          if (!s.task)
+            return (
+              <div key="draft" className={styles.draft} style={box}>
+                {formatRange(s.start, s.end)}
+              </div>
+            );
+          const label = `${s.task.title}, ${formatRange(s.start, s.end)}`;
+          const cls = [
+            styles.bar,
+            s.id === selectedId && styles.selected,
+            s.id === draggingId && styles.dragging,
+          ];
           return (
             <button
               key={s.id}
               type="button"
-              className={`${styles.bar} ${s.id === selectedId ? styles.selected : ''}`}
+              className={cls.filter(Boolean).join(' ')}
               data-starts-here={seg.startsHere || undefined}
               data-ends-here={seg.endsHere || undefined}
-              style={{
-                left: `calc(${pct(seg.start - weekStart)} + ${inL}px)`,
-                width: `calc(${pct(seg.end - seg.start + 1)} - ${inL + inR}px)`,
-                top: DATE_HEIGHT + i * LANE_HEIGHT,
-                ...taskColor(s.task, tags),
-              }}
+              style={{ ...box, ...taskColor(s.task, tags) }}
               aria-label={label}
               title={label}
-              onClick={() => openTask(s.id)}
+              onPointerDown={(e) => onBarPointerDown(e, s)}
+              onClick={(e) => {
+                if (e.detail === 0) openTask(s.id); // keyboard; pointer clicks come through the drag
+              }}
             >
               <span className={styles.barLabel}>{s.task.title}</span>
+              {seg.startsHere && (
+                <span className={`${styles.handle} ${styles.handleStart}`} data-handle="start" />
+              )}
+              {seg.endsHere && (
+                <span className={`${styles.handle} ${styles.handleEnd}`} data-handle="end" />
+              )}
             </button>
           );
         }),
@@ -136,14 +165,14 @@ export function DayTasks({
   onPick,
 }: {
   day: DayIndex;
-  spans: readonly TaskSpan[];
+  spans: readonly CalSpan[];
   onPick(id: string): void;
 }) {
   const tags = useDoc().tags;
   return (
     <ul className={styles.dayTasks}>
       {spans
-        .filter((s) => s.start <= day && s.end >= day)
+        .filter((s): s is TaskSpan => !!s.task && s.start <= day && s.end >= day)
         .map((s) => (
           <li key={s.id}>
             <button

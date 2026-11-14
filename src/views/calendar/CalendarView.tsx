@@ -4,6 +4,7 @@ import { visibleSpans } from '../../domain/spans';
 import { usePrefs } from '../../store/prefsStore';
 import { useDoc } from '../../store/roadmapStore';
 import { MonthView } from './MonthView';
+import { useCalendarGestures } from './useCalendarGestures';
 import styles from './calendar.module.css';
 
 export interface CalendarHandle {
@@ -23,10 +24,18 @@ export function CalendarView({ ref }: { ref?: Ref<CalendarHandle> }) {
     [],
   );
   const spans = useMemo(() => visibleSpans(doc, tagFilter), [doc, tagFilter]);
+  const g = useCalendarGestures(spans, box);
 
   return (
-    <div ref={box} className={styles.calendar} tabIndex={0} role="region" aria-label="Calendar">
-      {mode === 'month' && <MonthView cursor={cursor} spans={spans} />}
+    <div
+      ref={box}
+      className={styles.calendar}
+      tabIndex={0}
+      role="region"
+      aria-label="Calendar"
+      onPointerDown={g.onEmptyPointerDown}
+    >
+      {mode === 'month' && <MonthView cursor={cursor} g={g} />}
     </div>
   );
 }

@@ -1,13 +1,13 @@
 import { useLayoutEffect, useRef, useState } from 'react';
 import { monthWeeks } from '../../domain/calendar';
 import { formatWeekday, parts, type DayIndex } from '../../domain/dates';
-import type { TaskSpan } from '../../domain/spans';
 import { laneFit } from './layout';
+import type { CalendarGestures } from './useCalendarGestures';
 import { WeekRow } from './WeekRow';
 import styles from './calendar.module.css';
 
 /** CAL-1 … CAL-4: the 4–6 Monday-first weeks covering the cursor's month. */
-export function MonthView({ cursor, spans }: { cursor: DayIndex; spans: readonly TaskSpan[] }) {
+export function MonthView({ cursor, g }: { cursor: DayIndex; g: CalendarGestures }) {
   const { year, month } = parts(cursor);
   const weeks = monthWeeks(year, month);
   const body = useRef<HTMLDivElement>(null);
@@ -34,7 +34,9 @@ export function MonthView({ cursor, spans }: { cursor: DayIndex; spans: readonly
           <WeekRow
             key={w}
             weekStart={w}
-            spans={spans}
+            spans={g.spans}
+            draggingId={g.draggingId}
+            onBarPointerDown={g.onBarPointerDown}
             maxLanes={rowHeight === undefined ? undefined : laneFit(rowHeight)}
             dimOutside={{ year, month }}
           />
