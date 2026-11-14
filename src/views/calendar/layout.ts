@@ -5,6 +5,9 @@ import type { TaskSpan } from '../../domain/spans';
 /** Month view row geometry: the date number line, then bar lanes. */
 export const DATE_HEIGHT = 24;
 export const LANE_HEIGHT = 22;
+/** Week view: no date line, two-line bars (title + first line of details, CAL-8). */
+export const WEEK_TOP = 4;
+export const WEEK_LANE_HEIGHT = 44;
 
 /** Lanes that fit in a month row `height` px tall; at least one. */
 export const laneFit = (height: number) =>

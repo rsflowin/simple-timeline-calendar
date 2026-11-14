@@ -14,7 +14,14 @@ import { usePrefs } from '../../store/prefsStore';
 import { useDoc } from '../../store/roadmapStore';
 import { useUi } from '../../store/uiStore';
 import { taskColor } from '../taskColor';
-import { DATE_HEIGHT, LANE_HEIGHT, shownLanes, type CalSpan } from './layout';
+import {
+  DATE_HEIGHT,
+  LANE_HEIGHT,
+  shownLanes,
+  WEEK_LANE_HEIGHT,
+  WEEK_TOP,
+  type CalSpan,
+} from './layout';
 import { openTask } from './openTask';
 import styles from './calendar.module.css';
 
@@ -25,6 +32,8 @@ interface Props {
   maxLanes?: number;
   /** Dim days outside this month (CAL-1). */
   dimOutside?: { year: number; month: number };
+  /** Week view: tall two-line bars showing the first line of details, no date numbers (CAL-8). */
+  details?: boolean;
   draggingId: string | null;
   onBarPointerDown(e: PointerEvent<HTMLButtonElement>, s: TaskSpan): void;
 }
@@ -37,6 +46,7 @@ export function WeekRow({
   spans,
   maxLanes,
   dimOutside,
+  details,
   draggingId,
   onBarPointerDown,
 }: Props) {
@@ -51,9 +61,15 @@ export function WeekRow({
     null,
   );
   const days = Array.from({ length: 7 }, (_, i) => weekStart + i);
+  const top0 = details ? WEEK_TOP : DATE_HEIGHT;
+  const laneH = details ? WEEK_LANE_HEIGHT : LANE_HEIGHT;
 
   return (
-    <div className={styles.row}>
+    <div
+      className={`${styles.row} ${details ? styles.tall : ''}`}
+      // Week view: always one empty lane to drag in; the view scrolls when they don't fit.
+      style={details ? { height: `max(100%, ${top0 + (lanes.length + 1) * laneH}px)` } : undefined}
+    >
       <div className={styles.cells}>
         {days.map((d) => {
           const p = parts(d);
@@ -62,7 +78,7 @@ export function WeekRow({
           const cls = [styles.cell, outside && styles.outside, d === today && styles.today];
           return (
             <div key={d} data-day={d} className={cls.filter(Boolean).join(' ')}>
-              <span className={styles.date}>{p.date}</span>
+              {!details && <span className={styles.date}>{p.date}</span>}
             </div>
           );
         })}
@@ -75,7 +91,7 @@ export function WeekRow({
           const box = {
             left: `calc(${pct(seg.start - weekStart)} + ${inL}px)`,
             width: `calc(${pct(seg.end - seg.start + 1)} - ${inL + inR}px)`,
-            top: DATE_HEIGHT + i * LANE_HEIGHT,
+            top: top0 + i * laneH,
           };
           if (!s.task)
             return (
@@ -105,6 +121,7 @@ export function WeekRow({
               }}
             >
               <span className={styles.barLabel}>{s.task.title}</span>
+              {details && <span className={styles.barLabel}>{s.task.details.split('\n')[0]}</span>}
               {seg.startsHere && (
                 <span className={`${styles.handle} ${styles.handleStart}`} data-handle="start" />
               )}
@@ -125,7 +142,7 @@ export function WeekRow({
               style={{
                 left: `calc(${pct(i)} + 2px)`,
                 width: `calc(${pct(1)} - 4px)`,
-                top: DATE_HEIGHT + shown * LANE_HEIGHT,
+                top: top0 + shown * laneH,
               }}
               aria-label={`${n} more on ${formatMonthDay(days[i])}`}
               onClick={(e) => {

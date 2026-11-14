@@ -5,6 +5,7 @@ import { usePrefs } from '../../store/prefsStore';
 import { useDoc } from '../../store/roadmapStore';
 import { MonthView } from './MonthView';
 import { useCalendarGestures } from './useCalendarGestures';
+import { WeekView } from './WeekView';
 import styles from './calendar.module.css';
 
 export interface CalendarHandle {
@@ -35,6 +36,7 @@ export function CalendarView({ ref }: { ref?: Ref<CalendarHandle> }) {
       aria-label="Calendar"
       onPointerDown={g.onEmptyPointerDown}
     >
+      {mode === 'week' && <WeekView cursor={cursor} g={g} />}
       {mode === 'month' && <MonthView cursor={cursor} g={g} />}
     </div>
   );

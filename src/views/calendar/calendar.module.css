@@ -7,9 +7,10 @@
   outline-offset: -2px;
 }
 
-/* Month view */
+/* Month and Week view */
 
-.month {
+.month,
+.week {
   display: flex;
   flex-direction: column;
   height: 100%;
@@ -81,6 +82,33 @@
 .today .date {
   background: var(--color-today-line);
   color: var(--color-on-accent);
+}
+
+/* Week view */
+
+.weekdays .todayHead {
+  color: var(--color-today-line);
+  font-weight: 600;
+}
+
+.weekBody {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+
+.tall .bar,
+.tall .draft {
+  height: 40px;
+  line-height: 18px;
+}
+
+.tall .bar {
+  padding: 2px 0;
+}
+
+.tall .barLabel + .barLabel {
+  color: var(--color-text-muted);
 }
 
 /* Bars: square by default, rounded only where the task really starts / ends (CAL-2) */

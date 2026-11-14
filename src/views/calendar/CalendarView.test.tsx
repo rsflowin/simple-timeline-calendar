@@ -145,3 +145,24 @@ describe('CalendarView — gestures', () => {
     expect(useUi.getState()).toMatchObject({ selectedId: 'a', editing: { mode: 'edit', id: 'a' } });
   });
 });
+
+describe('CalendarView — week', () => {
+  beforeEach(() => {
+    usePrefs.setState({
+      calendarMode: 'week',
+      cursor: '2026-11-13',
+      packRows: true,
+      tagFilter: [],
+    });
+  });
+
+  it('shows Mon–Sun with dates and the first line of details on each bar (CAL-7, CAL-8)', () => {
+    const t = { ...task('a', '2026-11-10', '2026-11-11'), details: 'First line\nsecond line' };
+    useRoadmap.getState().reset({ tags: [], tasks: [t] });
+    const { container } = render(<CalendarView />);
+    expect(container.querySelectorAll('[data-day]')).toHaveLength(7);
+    expect(screen.getByText('Mon 9')).toBeInTheDocument();
+    expect(screen.getByText('Sun 15')).toBeInTheDocument();
+    expect(bars('a')[0]).toHaveTextContent(/^Task aFirst line$/);
+  });
+});
