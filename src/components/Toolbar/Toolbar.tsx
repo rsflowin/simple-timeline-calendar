@@ -95,7 +95,9 @@ export function Toolbar({ onToday }: { onToday(): void }) {
           >
             ›
           </button>
-          <span className={styles.title}>{calendarTitle(mode, cursor)}</span>
+          <span className={styles.title} aria-live="polite">
+            {calendarTitle(mode, cursor)}
+          </span>
           <Segmented
             label="Calendar mode"
             options={MODES}

@@ -1,4 +1,4 @@
-import type { DayIndex } from '../../domain/dates';
+import type { DayRange } from '../../domain/drag';
 import type { Span } from '../../domain/packRows';
 import type { TaskSpan } from '../../domain/spans';
 
@@ -17,11 +17,6 @@ export const laneFit = (height: number) =>
 export const shownLanes = (lanes: number, fit: number | undefined) =>
   fit === undefined || lanes <= fit ? lanes : fit - 1;
 
-interface Range {
-  start: DayIndex;
-  end: DayIndex;
-}
-
 /** A task, or the drag-create draft (no task). */
 export type CalSpan = TaskSpan | (Span & { task?: undefined });
 
@@ -31,8 +26,8 @@ export type CalSpan = TaskSpan | (Span & { task?: undefined });
  */
 export function withGesture(
   spans: readonly TaskSpan[],
-  preview: (Range & { id: string }) | null,
-  draft: Range | null,
+  preview: (DayRange & { id: string }) | null,
+  draft: DayRange | null,
 ): readonly CalSpan[] {
   if (!preview && !draft) return spans;
   const out: CalSpan[] = spans.map((s) =>
@@ -40,4 +35,24 @@ export function withGesture(
   );
   if (draft) out.push({ id: '', ...draft });
   return out;
+}
+
+/**
+ * Lanes to draw and lanes behind `+N more` (CAL-4). Segments of an active gesture (the draft, the
+ * dragged bar) never hide: they're pinned into the last drawn lane (lane 0 if none), so they stay
+ * visible and out of the `+N more` counts.
+ */
+export function splitLanes<T extends { item: CalSpan }>(
+  lanes: readonly T[][],
+  shown: number,
+  active: (s: CalSpan) => boolean,
+): { drawn: T[][]; hidden: T[][] } {
+  const drawn = lanes.slice(0, shown);
+  const rest = lanes.slice(shown);
+  const pinned = rest.flatMap((l) => l.filter((s) => active(s.item)));
+  if (pinned.length) {
+    const slot = Math.max(shown - 1, 0);
+    drawn[slot] = [...(drawn[slot] ?? []), ...pinned];
+  }
+  return { drawn, hidden: rest.map((l) => l.filter((s) => !active(s.item))) };
 }

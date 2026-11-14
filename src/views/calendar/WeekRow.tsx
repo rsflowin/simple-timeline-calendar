@@ -18,11 +18,12 @@ import {
   DATE_HEIGHT,
   LANE_HEIGHT,
   shownLanes,
+  splitLanes,
   WEEK_LANE_HEIGHT,
   WEEK_TOP,
   type CalSpan,
 } from './layout';
-import { openTask } from './openTask';
+import { openTask } from '../openTask';
 import styles from './calendar.module.css';
 
 interface Props {
@@ -56,7 +57,12 @@ export function WeekRow({
   const today = toDayIndex(todayISO());
   const lanes = useMemo(() => weekLanes(spans, weekStart, pack), [spans, weekStart, pack]);
   const shown = shownLanes(lanes.length, maxLanes);
-  const hidden = shown < lanes.length ? hiddenCounts(lanes, shown, weekStart) : [];
+  const { drawn, hidden: hiddenLanes } = splitLanes(
+    lanes,
+    shown,
+    (s) => !s.task || s.id === draggingId,
+  );
+  const hidden = hiddenLanes.length ? hiddenCounts(hiddenLanes, 0, weekStart) : [];
   const [more, setMore] = useState<{ day: DayIndex; el: HTMLElement; anchor: DOMRect } | null>(
     null,
   );
@@ -83,7 +89,7 @@ export function WeekRow({
           );
         })}
       </div>
-      {lanes.slice(0, shown).flatMap((lane, i) =>
+      {drawn.flatMap((lane, i) =>
         lane.map((seg) => {
           const s = seg.item;
           const inL = seg.startsHere ? 2 : 0;

@@ -2,12 +2,14 @@ import type { DayIndex } from './dates';
 
 export type DragKind = 'move' | 'resize-start' | 'resize-end';
 
+/** Inclusive day range. */
+export interface DayRange {
+  start: DayIndex;
+  end: DayIndex;
+}
+
 /** New range after dragging by `delta` whole days. A task never gets shorter than one day. */
-export function applyDrag(
-  span: { start: DayIndex; end: DayIndex },
-  kind: DragKind,
-  delta: number,
-): { start: DayIndex; end: DayIndex } {
+export function applyDrag(span: DayRange, kind: DragKind, delta: number): DayRange {
   if (kind === 'move') return { start: span.start + delta, end: span.end + delta };
   if (kind === 'resize-start')
     return { start: Math.min(span.start + delta, span.end), end: span.end };

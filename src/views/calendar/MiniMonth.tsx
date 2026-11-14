@@ -49,6 +49,8 @@ export function MiniMonth({ year, month, today, counts, onDay }: Props) {
               type="button"
               className={`${styles.miniDay} ${d === today ? styles.today : ''}`}
               data-level={Math.min(n, 3) || undefined}
+              // days without tasks stay clickable but leave the tab order
+              tabIndex={n ? undefined : -1}
               aria-label={`${formatMonthDay(d)}, ${n} task${n === 1 ? '' : 's'}`}
               onClick={(e) => onDay(d, e.currentTarget)}
             >

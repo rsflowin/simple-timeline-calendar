@@ -17,7 +17,7 @@ import {
   type DayIndex,
 } from '../../domain/dates';
 import { updateTask } from '../../domain/doc';
-import { applyDrag, rangeBetween, type DragKind } from '../../domain/drag';
+import { applyDrag, rangeBetween, type DayRange, type DragKind } from '../../domain/drag';
 import { packRows } from '../../domain/packRows';
 import { headerRows, PX_PER_DAY, unitRange } from '../../domain/scale';
 import { visibleSpans, type TaskSpan } from '../../domain/spans';
@@ -26,6 +26,7 @@ import { usePrefs } from '../../store/prefsStore';
 import { useDoc, useRoadmap } from '../../store/roadmapStore';
 import { useStatus } from '../../store/statusStore';
 import { useUi } from '../../store/uiStore';
+import { openTask } from '../openTask';
 import { taskColor } from '../taskColor';
 import { dayAt } from './layout';
 import { TaskBar } from './TaskBar';
@@ -40,11 +41,6 @@ const BAR_INSET = (ROW_HEIGHT - BAR_HEIGHT) / 2;
 export interface TimelineHandle {
   scrollToDay(day: DayIndex): void;
   focus(): void;
-}
-
-interface Range {
-  start: DayIndex;
-  end: DayIndex;
 }
 
 export function TimelineView({ ref }: { ref?: Ref<TimelineHandle> }) {
@@ -70,9 +66,9 @@ export function TimelineView({ ref }: { ref?: Ref<TimelineHandle> }) {
 
   const grid = useRef<HTMLDivElement>(null);
   /** Dashed bar while drag-creating, kept until quick-create closes (TL-11). */
-  const [draft, setDraft] = useState<(Range & { row: number }) | null>(null);
+  const [draft, setDraft] = useState<(DayRange & { row: number }) | null>(null);
   /** Bar being moved or resized; it keeps its row until release (TL-13, TL-14). */
-  const [preview, setPreview] = useState<(Range & { id: string }) | null>(null);
+  const [preview, setPreview] = useState<(DayRange & { id: string }) | null>(null);
 
   // When quick-create closes, drop the draft and give focus back to the timeline (NF-4).
   useEffect(
@@ -126,11 +122,6 @@ export function TimelineView({ ref }: { ref?: Ref<TimelineHandle> }) {
     });
   };
 
-  const open = (id: string) => {
-    useUi.getState().select(id);
-    useUi.getState().openEdit(id);
-  };
-
   const onBarPointerDown = (e: PointerEvent<HTMLButtonElement>, s: TaskSpan) => {
     if (e.button !== 0) return;
     e.preventDefault();
@@ -145,7 +136,7 @@ export function TimelineView({ ref }: { ref?: Ref<TimelineHandle> }) {
         setPreview(null);
         if (!moved) {
           bar.focus(); // so the dialog hands focus back to the bar
-          open(s.id);
+          openTask(s.id);
           return;
         }
         const { start, end } = dragged(dx);
@@ -214,7 +205,7 @@ export function TimelineView({ ref }: { ref?: Ref<TimelineHandle> }) {
                   selected={s.id === selectedId}
                   tip={p === preview ? formatRange(p.start, p.end) : undefined}
                   onPointerDown={(e) => onBarPointerDown(e, s)}
-                  onOpen={() => open(s.id)}
+                  onOpen={() => openTask(s.id)}
                 />
               );
             }),

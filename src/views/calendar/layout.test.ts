@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { TaskSpan } from '../../domain/spans';
 import type { Task } from '../../domain/types';
-import { laneFit, shownLanes, withGesture } from './layout';
+import { laneFit, shownLanes, splitLanes, withGesture, type CalSpan } from './layout';
 
 describe('laneFit', () => {
   it('fits 22 px lanes under the 24 px date line, at least one', () => {
@@ -47,5 +47,30 @@ describe('withGesture', () => {
     const out = withGesture(spans, null, { start: 3, end: 9 });
     expect(out.slice(0, 2)).toEqual(spans);
     expect(out[2]).toEqual({ id: '', start: 3, end: 9 });
+  });
+});
+
+describe('splitLanes', () => {
+  const seg = (id: string, task = true) => ({
+    item: { id, task: task ? ({ id } as Task) : undefined } as CalSpan,
+  });
+  const lanes = [[seg('a')], [seg('b')], [seg('c'), seg('', false)], [seg('d')]];
+  const ids = (ls: { item: CalSpan }[][]) => ls.map((l) => l.map((s) => s.item.id));
+  const active = (s: CalSpan) => !s.task || s.id === 'd';
+
+  it('draws the first `shown` lanes and hides the rest when nothing is active', () => {
+    const { drawn, hidden } = splitLanes(lanes, 2, () => false);
+    expect(ids(drawn)).toEqual([['a'], ['b']]);
+    expect(ids(hidden)).toEqual([['c', ''], ['d']]);
+  });
+
+  it('pins the draft and the dragged bar into the last shown lane, out of the hidden ones', () => {
+    const { drawn, hidden } = splitLanes(lanes, 2, active);
+    expect(ids(drawn)).toEqual([['a'], ['b', '', 'd']]);
+    expect(ids(hidden)).toEqual([['c'], []]);
+  });
+
+  it('pins into lane 0 when no lane is shown', () => {
+    expect(ids(splitLanes(lanes, 0, active).drawn)).toEqual([['', 'd']]);
   });
 });

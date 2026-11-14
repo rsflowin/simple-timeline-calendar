@@ -11,11 +11,10 @@ export function MonthView({ cursor, g }: { cursor: DayIndex; g: CalendarGestures
   const { year, month } = parts(cursor);
   const weeks = monthWeeks(year, month);
   const body = useRef<HTMLDivElement>(null);
-  /** Undefined until measured: rows are not capped (also in jsdom, which has no ResizeObserver). */
+  /** Undefined until measured: rows are not capped. */
   const [rowHeight, setRowHeight] = useState<number>();
 
   useLayoutEffect(() => {
-    if (typeof ResizeObserver === 'undefined') return;
     const el = body.current!;
     const ro = new ResizeObserver(() => setRowHeight(el.clientHeight / weeks.length));
     ro.observe(el);

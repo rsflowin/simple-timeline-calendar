@@ -13,7 +13,7 @@ import {
 import type { TaskSpan } from '../../domain/spans';
 import { useUi } from '../../store/uiStore';
 import { MiniMonth } from './MiniMonth';
-import { openTask } from './openTask';
+import { openTask } from '../openTask';
 import { DayTasks } from './WeekRow';
 import styles from './calendar.module.css';
 

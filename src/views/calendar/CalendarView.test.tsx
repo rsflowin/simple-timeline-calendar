@@ -65,6 +65,59 @@ describe('CalendarView — month', () => {
   });
 });
 
+describe('CalendarView — +N more (CAL-4)', () => {
+  const realRO = globalThis.ResizeObserver;
+
+  beforeEach(() => {
+    // Six 50 px rows: room for the date line and one lane, so laneFit() is 1.
+    Object.defineProperty(HTMLElement.prototype, 'clientHeight', {
+      configurable: true,
+      get: () => 300,
+    });
+    globalThis.ResizeObserver = class {
+      cb: ResizeObserverCallback;
+      constructor(cb: ResizeObserverCallback) {
+        this.cb = cb;
+      }
+      observe() {
+        this.cb([], this as unknown as ResizeObserver);
+      }
+      unobserve() {}
+      disconnect() {}
+    } as unknown as typeof ResizeObserver;
+    useUi.setState({ quickCreate: null, editing: null, selectedId: null });
+    usePrefs.setState({
+      calendarMode: 'month',
+      cursor: '2026-11-13',
+      packRows: true,
+      tagFilter: [],
+    });
+    useRoadmap.getState().reset({
+      tags: [],
+      tasks: [task('a', '2026-11-10', '2026-11-11'), task('b', '2026-11-11', '2026-11-12')],
+    });
+  });
+  afterEach(() => {
+    Reflect.deleteProperty(HTMLElement.prototype, 'clientHeight');
+    globalThis.ResizeObserver = realRO;
+    delete (document as Partial<Document>).elementsFromPoint;
+  });
+
+  it('lists the hidden tasks; pressing inside the list does not start a drag-create', () => {
+    const { container } = render(<CalendarView />);
+    expect(screen.queryByRole('button', { name: /^Task a,/ })).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: '2 more on Nov 11' }));
+    const pop = screen.getByRole('dialog', { name: 'Tasks on Nov 11' });
+    expect(pop).toHaveTextContent('Task aTask b');
+    // The popover sits over a day cell, which elementsFromPoint sees through.
+    const cell = container.querySelector(`[data-day="${toDayIndex('2026-11-11')}"]`)!;
+    document.elementsFromPoint = () => [pop, cell];
+    fireEvent.pointerDown(pop, { button: 0 });
+    window.dispatchEvent(new MouseEvent('pointerup'));
+    expect(useUi.getState().quickCreate).toBeNull();
+  });
+});
+
 describe('CalendarView — gestures', () => {
   // jsdom has no layout: the pointer's clientX is the day index of the cell under it.
   const at = (iso: string) => ({ clientX: toDayIndex(iso), clientY: 0 });

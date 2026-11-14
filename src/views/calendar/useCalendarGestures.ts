@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState, type PointerEvent, type RefObject } from 'react';
-import { fromDayIndex, type DayIndex } from '../../domain/dates';
+import { fromDayIndex } from '../../domain/dates';
 import { updateTask } from '../../domain/doc';
-import { applyDrag, rangeBetween, type DragKind } from '../../domain/drag';
+import { applyDrag, rangeBetween, type DayRange, type DragKind } from '../../domain/drag';
 import type { TaskSpan } from '../../domain/spans';
 import { startPointerDrag } from '../../hooks/pointerDrag';
 import { useRoadmap } from '../../store/roadmapStore';
@@ -9,12 +9,7 @@ import { useStatus } from '../../store/statusStore';
 import { useUi } from '../../store/uiStore';
 import { dayAtPoint } from './dayAtPoint';
 import { withGesture, type CalSpan } from './layout';
-import { openTask } from './openTask';
-
-interface Range {
-  start: DayIndex;
-  end: DayIndex;
-}
+import { openTask } from '../openTask';
 
 export interface CalendarGestures {
   /** Spans to draw, including the drag preview and draft. */
@@ -32,8 +27,8 @@ export function useCalendarGestures(
   box: RefObject<HTMLElement | null>,
 ): CalendarGestures {
   /** Dashed range while drag-creating, kept until quick-create closes. */
-  const [draft, setDraft] = useState<Range | null>(null);
-  const [preview, setPreview] = useState<(Range & { id: string }) | null>(null);
+  const [draft, setDraft] = useState<DayRange | null>(null);
+  const [preview, setPreview] = useState<(DayRange & { id: string }) | null>(null);
 
   useEffect(
     () =>
@@ -48,13 +43,14 @@ export function useCalendarGestures(
   const shown = useMemo(() => withGesture(spans, preview, draft), [spans, preview, draft]);
 
   const onEmptyPointerDown = (e: PointerEvent<HTMLElement>) => {
-    // Bars and `+N more` handle their own presses; not stopPropagation there, Popover listens on document.
-    if (e.button !== 0 || (e.target as Element).closest('button')) return;
-    const d0 = dayAtPoint(e.clientX, e.clientY);
-    if (d0 === null) return;
+    // Only presses on a day cell itself: bars, `+N more` and popovers (DOM descendants of the
+    // calendar, over the cells) are not inside one. No stopPropagation: Popover listens on document.
+    const cell = (e.target as Element).closest<HTMLElement>('[data-day]');
+    if (e.button !== 0 || !cell) return;
+    const d0 = Number(cell.dataset.day);
     e.preventDefault();
     let d1 = d0;
-    const range = (ev: globalThis.PointerEvent): Range => {
+    const range = (ev: globalThis.PointerEvent): DayRange => {
       d1 = dayAtPoint(ev.clientX, ev.clientY) ?? d1;
       const [start, end] = rangeBetween(d0, d1);
       return { start, end };
