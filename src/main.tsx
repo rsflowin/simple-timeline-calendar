@@ -16,7 +16,9 @@ useRoadmap.getState().reset(doc);
 if (error)
   useStatus
     .getState()
-    .show(`Saved data couldn't be read (${error}). A backup was kept; starting empty.`);
+    .show(
+      `Saved roadmap couldn't be read (${error}). A backup copy was kept; starting with an empty roadmap.`,
+    );
 startAutosave(adapter, () =>
   useStatus.getState().show("Couldn't save. Export your roadmap to keep a copy."),
 );

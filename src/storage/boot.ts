@@ -1,5 +1,5 @@
 import { EMPTY_DOC } from '../domain/doc';
-import { parseRoadmap } from '../domain/schema';
+import { parseRoadmap, serializeRoadmap } from '../domain/schema';
 import type { RoadmapDoc } from '../domain/types';
 import type { StorageAdapter } from './StorageAdapter';
 
@@ -13,6 +13,7 @@ export async function loadRoadmap(
     return { doc: parseRoadmap(raw), error: null };
   } catch (e) {
     await adapter.backup(raw);
+    await adapter.save(serializeRoadmap(EMPTY_DOC));
     return { doc: EMPTY_DOC, error: e instanceof Error ? e.message : String(e) };
   }
 }

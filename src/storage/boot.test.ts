@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { serializeRoadmap } from '../domain/schema';
+import { parseRoadmap, serializeRoadmap } from '../domain/schema';
 import { loadRoadmap } from './boot';
 
 const adapter = (raw: string | null) => ({
@@ -22,5 +22,20 @@ describe('loadRoadmap', () => {
     expect(a.backup).toHaveBeenCalledWith('{broken');
     expect(result.doc).toEqual({ tasks: [], tags: [] });
     expect(result.error).toMatch('not valid JSON');
+  });
+  it('overwrites unreadable data with an empty doc after backing it up, so it is backed up once', async () => {
+    const calls: string[] = [];
+    const save = vi.fn<(json: string) => Promise<void>>(async () => {
+      calls.push('save');
+    });
+    await loadRoadmap({
+      load: async () => '{broken',
+      save,
+      backup: async () => {
+        calls.push('backup');
+      },
+    });
+    expect(calls).toEqual(['backup', 'save']);
+    expect(parseRoadmap(save.mock.calls[0][0])).toEqual({ tasks: [], tags: [] });
   });
 });
