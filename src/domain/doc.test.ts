@@ -43,6 +43,7 @@ describe('tasks', () => {
     doc = updateTask(doc, 't1', { end: '2026-01-12' }, T1);
     expect(doc.tasks[0]).toMatchObject({ end: '2026-01-12', updatedAt: T1, createdAt: T0 });
     expect(deleteTask(doc, 't1').tasks).toHaveLength(0);
+    expect(deleteTask(doc, 'nope')).toBe(doc);
   });
 });
 
@@ -75,5 +76,6 @@ describe('tags', () => {
     doc = deleteTag(doc, 'g1');
     expect(doc.tags).toHaveLength(0);
     expect(doc.tasks[0].tagIds).toEqual([]);
+    expect(deleteTag(doc, 'nope')).toBe(doc);
   });
 });

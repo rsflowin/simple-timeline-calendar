@@ -27,6 +27,10 @@ describe('dates', () => {
     expect(isValidISODate('2026-02-29')).toBe(false);
     expect(isValidISODate('2026-1-5')).toBe(false);
     expect(isValidISODate(20260105)).toBe(false);
+    expect(isValidISODate('1899-12-31')).toBe(false);
+    expect(isValidISODate('2200-01-01')).toBe(false);
+    expect(isValidISODate('1900-01-01')).toBe(true);
+    expect(isValidISODate('2199-12-31')).toBe(true);
     expect(() => d('nope')).toThrow('Invalid date');
   });
 
@@ -54,6 +58,7 @@ describe('dates', () => {
 
   it('todayISO uses the local calendar date', () => {
     expect(todayISO(new Date(2026, 0, 5, 23, 59))).toBe('2026-01-05');
+    expect(todayISO(new Date(2026, 0, 5, 0, 1))).toBe('2026-01-05');
   });
 
   it('formats labels', () => {

@@ -9,6 +9,7 @@ export const LOCALE = 'en';
 const MS_PER_DAY = 86_400_000;
 const ISO_DATE = /^(\d{4})-(\d{2})-(\d{2})$/;
 
+/** Assumes a real date; validate untrusted input with isValidISODate. */
 export function toDayIndex(date: ISODate): DayIndex {
   const m = ISO_DATE.exec(date);
   if (!m) throw new Error(`Invalid date "${date}", expected YYYY-MM-DD`);
@@ -19,10 +20,12 @@ export function fromDayIndex(day: DayIndex): ISODate {
   return new Date(day * MS_PER_DAY).toISOString().slice(0, 10);
 }
 
-/** True for real calendar dates only ('2026-02-30' is rejected by the round trip). */
+/** True for real calendar dates in 1900–2199 only ('2026-02-30' is rejected by the round trip). */
 export function isValidISODate(value: unknown): value is ISODate {
   return (
-    typeof value === 'string' && ISO_DATE.test(value) && fromDayIndex(toDayIndex(value)) === value
+    typeof value === 'string' &&
+    /^(19|2[01])\d\d-\d\d-\d\d$/.test(value) &&
+    fromDayIndex(toDayIndex(value)) === value
   );
 }
 

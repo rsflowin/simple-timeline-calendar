@@ -38,7 +38,7 @@ export function weekLanes<T extends Span>(
 
 /** Per weekday (Mon..Sun), how many segments sit in lanes at index >= shown (for "+N more"). */
 export function hiddenCounts(
-  lanes: readonly Span[][],
+  lanes: readonly Segment<unknown>[][],
   shown: number,
   weekStart: DayIndex,
 ): number[] {

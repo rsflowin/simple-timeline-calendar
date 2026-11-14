@@ -54,6 +54,7 @@ export function updateTask(
 }
 
 export function deleteTask(doc: RoadmapDoc, id: string): RoadmapDoc {
+  if (!doc.tasks.some((t) => t.id === id)) return doc;
   return { ...doc, tasks: doc.tasks.filter((t) => t.id !== id) };
 }
 
@@ -96,6 +97,7 @@ export function updateTag(
 }
 
 export function deleteTag(doc: RoadmapDoc, id: string): RoadmapDoc {
+  if (!doc.tags.some((t) => t.id === id)) return doc;
   return {
     tags: doc.tags.filter((t) => t.id !== id),
     tasks: doc.tasks.map((t) =>

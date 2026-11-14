@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { fromDayIndex as f, toDayIndex as d } from './dates';
-import { hiddenCounts, monthWeeks, tasksPerDay, weekLanes } from './calendar';
+import { hiddenCounts, monthWeeks, type Segment, tasksPerDay, weekLanes } from './calendar';
 import type { Span } from './packRows';
 
 const s = (id: string, start: number, end: number): Span => ({ id, start, end });
@@ -58,7 +58,15 @@ describe('weekLanes', () => {
 
 describe('hiddenCounts', () => {
   it('counts segments per day in lanes that do not fit', () => {
-    expect(hiddenCounts([[s('a', 9, 10)], [s('b', 10, 12)]], 1, 9)).toEqual([0, 1, 1, 1, 0, 0, 0]);
+    const seg = (id: string, start: number, end: number): Segment<unknown> => ({
+      ...s(id, start, end),
+      item: null,
+      startsHere: true,
+      endsHere: true,
+    });
+    expect(hiddenCounts([[seg('a', 9, 10)], [seg('b', 10, 12)]], 1, 9)).toEqual([
+      0, 1, 1, 1, 0, 0, 0,
+    ]);
   });
 });
 
