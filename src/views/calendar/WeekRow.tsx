@@ -122,6 +122,7 @@ export function WeekRow({
               aria-label={label}
               title={label}
               onPointerDown={(e) => onBarPointerDown(e, s)}
+              onFocus={() => useUi.getState().select(s.id)} // so Delete works on it (NF-4)
               onClick={(e) => {
                 if (e.detail === 0) openTask(s.id); // keyboard; pointer clicks come through the drag
               }}

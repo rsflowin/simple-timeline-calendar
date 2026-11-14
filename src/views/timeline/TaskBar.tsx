@@ -1,6 +1,7 @@
 import type { PointerEvent } from 'react';
 import { formatRange } from '../../domain/dates';
 import type { TaskSpan } from '../../domain/spans';
+import { useUi } from '../../store/uiStore';
 import styles from './timeline.module.css';
 
 interface Props {
@@ -28,6 +29,8 @@ export function TaskBar({ span, left, width, top, color, selected, tip, ...on }:
       aria-label={label}
       title={tip ? undefined : label}
       onPointerDown={on.onPointerDown}
+      // a focused bar is the selected one, so Delete works on it (NF-4)
+      onFocus={() => useUi.getState().select(span.id)}
       onClick={(e) => {
         if (e.detail === 0) on.onOpen();
       }}
