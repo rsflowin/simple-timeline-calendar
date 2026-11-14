@@ -1,0 +1,35 @@
+.active {
+  border-color: var(--color-selection);
+  background: var(--color-accent-bg);
+  color: var(--color-selection);
+}
+
+.body {
+  display: grid;
+  gap: 4px;
+  min-width: 180px;
+  max-height: 60vh;
+  overflow-y: auto;
+}
+
+.option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 2px 4px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.option:hover {
+  background: var(--color-hover);
+}
+
+.empty {
+  color: var(--color-text-muted);
+}
+
+.clear {
+  justify-self: start;
+  margin-top: 4px;
+}

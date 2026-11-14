@@ -61,3 +61,18 @@
 .primary:hover {
   background: var(--color-selection-hover);
 }
+
+.menu {
+  display: grid;
+  min-width: 140px;
+}
+
+.menu button {
+  border-color: transparent;
+  background: transparent;
+  text-align: left;
+}
+
+.menu button:hover {
+  background: var(--color-hover);
+}

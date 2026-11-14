@@ -1,9 +1,13 @@
+import { useRef, useState } from 'react';
 import { fromDayIndex, toDayIndex } from '../../domain/dates';
 import type { Zoom } from '../../domain/scale';
 import { usePrefs, type CalendarMode, type ViewMode } from '../../store/prefsStore';
 import { useRoadmap } from '../../store/roadmapStore';
 import { useUi } from '../../store/uiStore';
 import { calendarTitle, stepCursor } from '../../views/calendar/nav';
+import { Popover } from '../Popover';
+import { TagFilter } from '../TagFilter';
+import { TagManager } from '../TagManager';
 import styles from './Toolbar.module.css';
 
 interface SegmentedProps<T extends string> {
@@ -54,6 +58,19 @@ export function Toolbar({ onToday }: { onToday(): void }) {
   const undo = useRoadmap((s) => s.undo);
   const redo = useRoadmap((s) => s.redo);
   const openNew = useUi((s) => s.openNew);
+  const [menu, setMenu] = useState<DOMRect | null>(null);
+  const [managing, setManaging] = useState(false);
+  const menuButton = useRef<HTMLButtonElement>(null);
+
+  const closeMenu = () => {
+    setMenu(null);
+    menuButton.current?.focus();
+  };
+  /** Closes the menu first, so focus is back on its button before `action` opens anything. */
+  const pick = (action: () => void) => {
+    closeMenu();
+    action();
+  };
 
   return (
     <header className={styles.toolbar}>
@@ -114,6 +131,7 @@ export function Toolbar({ onToday }: { onToday(): void }) {
       >
         Pack rows
       </button>
+      <TagFilter />
       <div className={styles.spacer} />
       <div role="group" aria-label="History" className={styles.history}>
         <button type="button" disabled={!canUndo} onClick={undo} title="Undo (Ctrl+Z)">
@@ -131,6 +149,28 @@ export function Toolbar({ onToday }: { onToday(): void }) {
       >
         + New task
       </button>
+      <button
+        ref={menuButton}
+        type="button"
+        aria-label="Menu"
+        aria-expanded={menu !== null}
+        title="Menu"
+        // Without this, the popover's outside-pointerdown closes it and the click reopens it.
+        onPointerDown={(e) => menu && e.stopPropagation()}
+        onClick={(e) => (menu ? closeMenu() : setMenu(e.currentTarget.getBoundingClientRect()))}
+      >
+        ⋯
+      </button>
+      {menu && (
+        <Popover anchor={menu} label="Menu" onClose={closeMenu}>
+          <div className={styles.menu}>
+            <button type="button" autoFocus onClick={() => pick(() => setManaging(true))}>
+              Manage tags
+            </button>
+          </div>
+        </Popover>
+      )}
+      <TagManager open={managing} onClose={() => setManaging(false)} />
     </header>
   );
 }
