@@ -1,4 +1,4 @@
-# Timeline Calendar
+# Simple Timeline Calendar
 
 A local-first roadmap planner. Put tasks on a horizontal timeline or a
 calendar, tag them, and drag them around. There is no account and no server:
