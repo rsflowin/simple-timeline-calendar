@@ -14,6 +14,7 @@ describe('loadRoadmap', () => {
       doc: { tasks: [], tags: [] },
       error: null,
       unreadable: null,
+      backedUp: true,
     });
   });
   it('loads a valid doc', async () => {
@@ -22,6 +23,7 @@ describe('loadRoadmap', () => {
       doc,
       error: null,
       unreadable: null,
+      backedUp: true,
     });
   });
   it('backs up unreadable data instead of discarding it', async () => {
@@ -32,6 +34,7 @@ describe('loadRoadmap', () => {
     expect(result.error).toMatch('not valid JSON');
     expect(result.error).toMatch('A backup copy was kept; starting with an empty roadmap.');
     expect(result.unreadable).toBe('{broken');
+    expect(result.backedUp).toBe(true);
   });
   it('overwrites unreadable data with an empty doc after backing it up, so it is backed up once', async () => {
     const calls: string[] = [];
@@ -62,6 +65,7 @@ describe('loadRoadmap', () => {
     expect(result.error).not.toMatch('backup copy was kept');
     expect(result.unreadable).toBe('{broken');
     expect(result.doc).toEqual({ tasks: [], tags: [] });
+    expect(result.backedUp).toBe(false);
   });
   it('still starts when the empty doc cannot be saved after a backup', async () => {
     const a = {

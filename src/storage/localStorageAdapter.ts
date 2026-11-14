@@ -1,11 +1,12 @@
 import type { StorageAdapter } from './StorageAdapter';
 
-const KEY = 'timeline-calendar:roadmap';
+export const ROADMAP_KEY = 'timeline-calendar:roadmap';
 
 export function localStorageAdapter(storage: Storage = localStorage): StorageAdapter {
   return {
-    load: async () => storage.getItem(KEY),
-    save: async (json) => storage.setItem(KEY, json),
-    backup: async (json) => storage.setItem(`${KEY}:backup:${new Date().toISOString()}`, json),
+    load: async () => storage.getItem(ROADMAP_KEY),
+    save: async (json) => storage.setItem(ROADMAP_KEY, json),
+    backup: async (json) =>
+      storage.setItem(`${ROADMAP_KEY}:backup:${new Date().toISOString()}`, json),
   };
 }

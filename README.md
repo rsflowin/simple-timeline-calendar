@@ -52,6 +52,9 @@ when you close the page.
 Use **Export JSON** (the `⋯` menu) to back up or move your roadmap, and
 **Import JSON** to load it. Export regularly.
 
+Edit in one tab at a time: two open tabs overwrite each other's changes, so a
+tab warns you to reload when the roadmap was changed in another one.
+
 If the saved data can't be read, the app keeps a backup copy, starts empty and
 shows a banner with a download link. It never throws your data away silently.
 

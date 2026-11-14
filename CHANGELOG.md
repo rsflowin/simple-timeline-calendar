@@ -43,3 +43,5 @@ First release.
 - Browser storage is per browser and per address. Use Export to back up or
   move data.
 - In Year view, the Tab key only stops on days that have tasks.
+- Two tabs on the same roadmap overwrite each other's changes. The other tab
+  shows a warning to reload; edit in one tab at a time.
