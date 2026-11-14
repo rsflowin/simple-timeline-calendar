@@ -1,0 +1,50 @@
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.segmented {
+  display: flex;
+  padding: 2px;
+  gap: 2px;
+  border-radius: 8px;
+  background: var(--color-subtle);
+}
+
+.segmented button {
+  border-color: transparent;
+  background: transparent;
+  color: var(--color-text-muted);
+}
+
+.segmented button:hover {
+  color: var(--color-text);
+}
+
+.segmented button[aria-pressed='true'] {
+  background: var(--color-surface);
+  color: var(--color-text);
+  box-shadow: 0 1px 2px var(--color-shadow);
+}
+
+.spacer {
+  flex: 1;
+}
+
+.history {
+  display: flex;
+  gap: 4px;
+}
+
+.primary {
+  border-color: var(--color-selection);
+  background: var(--color-selection);
+  color: var(--color-on-accent);
+}
+
+.primary:hover {
+  background: var(--color-selection-hover);
+}

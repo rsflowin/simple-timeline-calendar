@@ -7,6 +7,16 @@
   --color-weekend: #f7f7f5;
   --color-today-line: #e03e3e;
   --color-selection: #2383e2;
+  --color-selection-hover: #1b6fc2;
+  --color-on-accent: #ffffff;
+  --color-border: #e3e2e0;
+  --color-hover: #f1f1ef;
+  --color-subtle: #f1f1ef;
+  --color-shadow: rgba(15, 15, 15, 0.12);
+  --color-backdrop: rgba(15, 15, 15, 0.3);
+  --color-danger: #c4352b;
+  --color-warning-bg: #fbf3db;
+  --color-warning-fg: #765b0f;
 
   --tag-blue-bg: #e7f3f8;
   --tag-blue-fg: #1f5f8b;
