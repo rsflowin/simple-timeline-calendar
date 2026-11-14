@@ -1,5 +1,6 @@
 import { Toolbar } from './components/Toolbar/Toolbar';
 import { StatusBanner } from './components/StatusBanner';
+import { TaskDialog } from './components/TaskDialog/TaskDialog';
 import { useShortcuts } from './hooks/useShortcuts';
 import { usePrefs } from './store/prefsStore';
 import { useRoadmap } from './store/roadmapStore';
@@ -35,6 +36,7 @@ export default function App() {
       <main className={styles.body}>
         {view === 'timeline' ? <div>Timeline view</div> : <div>Calendar view</div>}
       </main>
+      <TaskDialog />
     </div>
   );
 }
