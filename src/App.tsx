@@ -6,6 +6,7 @@ import { useShortcuts } from './hooks/useShortcuts';
 import { usePrefs } from './store/prefsStore';
 import { useRoadmap } from './store/roadmapStore';
 import { useUi } from './store/uiStore';
+import { TimelineView } from './views/timeline/TimelineView';
 import styles from './App.module.css';
 
 const setPrefs = usePrefs.getState().set;
@@ -35,7 +36,7 @@ export default function App() {
       <Toolbar onToday={() => {}} />
       <StatusBanner />
       <main className={styles.body}>
-        {view === 'timeline' ? <div>Timeline view</div> : <div>Calendar view</div>}
+        {view === 'timeline' ? <TimelineView /> : <div>Calendar view</div>}
       </main>
       <TaskDialog />
       <QuickCreate />
