@@ -70,7 +70,7 @@ function TagRow({ tag }: { tag: Tag }) {
   };
 
   return (
-    <li className={styles.row}>
+    <li>
       <div className={styles.line}>
         <input
           aria-label={`Rename ${tag.name}`}

@@ -59,6 +59,18 @@ describe('TagManager', () => {
     await user.keyboard('{Escape}');
     expect(input).toHaveValue('Urgent');
     expect(screen.queryByRole('alert')).toBeNull();
+    await user.tab(); // blur after revert commits nothing
+    expect(present()).toBe(doc);
+  });
+
+  it('renames on blur', async () => {
+    const user = setup();
+    const input = screen.getByRole('textbox', { name: 'Rename Urgent' });
+    await user.clear(input);
+    await user.type(input, 'Hot');
+    await user.tab();
+    expect(present().tags[0].name).toBe('Hot');
+    expect(useRoadmap.getState().history.past).toEqual([doc]);
   });
 
   it('changes colour with a swatch', async () => {

@@ -54,6 +54,7 @@ export function TagFilter() {
             <button
               type="button"
               className={styles.clear}
+              autoFocus={tags.length === 0}
               onClick={() => setPrefs({ tagFilter: [] })}
             >
               Clear

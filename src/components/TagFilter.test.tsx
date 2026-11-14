@@ -63,6 +63,16 @@ describe('TagFilter', () => {
     expect(screen.getByRole('button', { name: 'Tags' })).toBeInTheDocument();
   });
 
+  it('with no tags, focuses Clear so Escape still closes the popover', async () => {
+    useRoadmap.getState().reset({ tags: [], tasks: [] });
+    const user = userEvent.setup();
+    render(<TagFilter />);
+    await user.click(screen.getByRole('button', { name: 'Tags' }));
+    expect(screen.getByRole('button', { name: 'Clear' })).toHaveFocus();
+    await user.keyboard('{Escape}');
+    expect(screen.queryByRole('dialog')).toBeNull();
+  });
+
   it('does not count filter ids of deleted tags', () => {
     usePrefs.setState({ tagFilter: ['r', 'gone'] });
     render(<TagFilter />);
