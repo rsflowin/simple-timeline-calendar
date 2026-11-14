@@ -49,7 +49,7 @@ button {
   white-space: nowrap;
 }
 
-button:hover:not(:disabled) {
+button:where(:hover:not(:disabled)) {
   background: var(--color-hover);
 }
 

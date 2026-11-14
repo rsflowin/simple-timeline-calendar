@@ -23,8 +23,9 @@ export function useShortcuts(map: Record<string, () => void>) {
       const handler = latest.current[name];
       if (!handler) return;
       if (name !== 'escape' && e.target instanceof Element && e.target.closest(TYPING)) return;
-      // Never preventDefault on Esc: that would stop a native <dialog> from closing.
-      if (mod) e.preventDefault();
+      // Stops `n` from being typed into the field it opens. Never on Esc: that would stop a
+      // native <dialog> from closing.
+      if (name !== 'escape') e.preventDefault();
       handler();
     };
     document.addEventListener('keydown', onKeyDown);

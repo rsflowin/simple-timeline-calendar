@@ -12,8 +12,10 @@ describe('useShortcuts', () => {
   it('calls the handler for a key pressed on the page', () => {
     const n = vi.fn();
     renderHook(() => useShortcuts({ n }));
-    press('n');
+    const event = new KeyboardEvent('keydown', { key: 'n', bubbles: true, cancelable: true });
+    document.dispatchEvent(event);
     expect(n).toHaveBeenCalledOnce();
+    expect(event.defaultPrevented).toBe(true); // or the key is typed into the field it opens
   });
 
   it('ignores keys typed in a field, except escape', () => {

@@ -68,6 +68,7 @@ export function Toolbar({ onToday }: { onToday(): void }) {
       )}
       <button
         type="button"
+        className={styles.toggle}
         aria-pressed={packRows}
         onClick={() => setPrefs({ packRows: !packRows })}
       >
