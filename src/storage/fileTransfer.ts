@@ -10,7 +10,8 @@ export function downloadText(text: string, filename: string, type = 'application
 export function pickTextFile(accept = '.json,application/json'): Promise<string | null> {
   return new Promise((resolve) => {
     const input = Object.assign(document.createElement('input'), { type: 'file', accept });
-    input.onchange = () => (input.files?.[0] ? input.files[0].text().then(resolve) : resolve(null));
+    input.onchange = () =>
+      input.files?.[0] ? input.files[0].text().then(resolve, () => resolve(null)) : resolve(null);
     input.oncancel = () => resolve(null);
     input.click();
   });

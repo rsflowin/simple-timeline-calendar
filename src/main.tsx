@@ -11,9 +11,9 @@ import './styles/global.css';
 
 const adapter = localStorageAdapter(); // Phase 9: pick the Tauri adapter here
 
-const { doc, error } = await loadRoadmap(adapter);
+const { doc, error, unreadable } = await loadRoadmap(adapter);
 useRoadmap.getState().reset(doc);
-if (error) useStatus.getState().show(error);
+if (error) useStatus.getState().show(error, unreadable);
 startAutosave(adapter, () =>
   useStatus.getState().show("Couldn't save. Export your roadmap to keep a copy."),
 );

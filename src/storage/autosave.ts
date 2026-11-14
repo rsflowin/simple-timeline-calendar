@@ -21,6 +21,7 @@ export function startAutosave(adapter: StorageAdapter, onError: (e: unknown) => 
   const onHide = () => {
     if (timer !== undefined) flush();
   };
+  // `?.` because the node test environment has no window or document.
   globalThis.addEventListener?.('pagehide', onHide);
   globalThis.document?.addEventListener('visibilitychange', onHide);
 

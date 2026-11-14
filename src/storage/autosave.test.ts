@@ -25,6 +25,28 @@ describe('autosave', () => {
     stop();
   });
 
+  it('saves at once when the page is hidden, and only if something is pending', () => {
+    let onHide = () => {};
+    vi.stubGlobal('addEventListener', (type: string, fn: () => void) => {
+      if (type === 'pagehide') onHide = fn;
+    });
+    try {
+      const save = vi.fn<(json: string) => Promise<void>>(async () => {});
+      const stop = startAutosave(
+        { load: async () => null, save, backup: async () => {} },
+        () => {},
+      );
+      useRoadmap.getState().commit((d) => addTask(d, input));
+      onHide();
+      expect(save).toHaveBeenCalledTimes(1);
+      onHide();
+      expect(save).toHaveBeenCalledTimes(1);
+      stop();
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
   it('reports save errors', async () => {
     const onError = vi.fn();
     const stop = startAutosave(
