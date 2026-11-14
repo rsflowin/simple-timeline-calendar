@@ -1,6 +1,6 @@
 # Timeline Calendar — Product Specification (v1)
 
-Status: Draft · Last updated: 2026-11-13
+Status: v1 implemented (0.1.0) · Last updated: 2026-11-14
 
 A local-first roadmap tool. You put tasks on a horizontal timeline or a
 Google-Calendar-style calendar, tag them, and move them around with the mouse.

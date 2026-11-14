@@ -1,5 +1,7 @@
 # Timeline Calendar v1 — Implementation Plan
 
+> **Status:** implemented on branch feat/v1 (2026-11-14); see git log for deviations.
+
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
 
 **Goal:** Build v1 of Timeline Calendar as a local web app (dev server or Docker): a horizontal timeline with Day/Week/Month zoom and a Week/Month/Year calendar, for whole-day tagged tasks, with row packing, undo/redo and JSON import/export.

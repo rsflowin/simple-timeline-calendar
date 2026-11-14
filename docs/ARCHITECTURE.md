@@ -10,7 +10,7 @@ does.
 | Language | TypeScript (strict) | Contributors get types for the data model and layout math |
 | UI | React + Vite | Fast dev server; Tauri's recommended frontend setup |
 | State | Zustand | One small store with undo; no boilerplate |
-| Dates | Own ~80-line module + `Intl.DateTimeFormat` | We only need whole days, ISO weeks and month names. A date library would add dependencies without removing much code |
+| Dates | Own ~90-line module + `Intl.DateTimeFormat` | We only need whole days, ISO weeks and month names. A date library would add dependencies without removing much code |
 | Styling | CSS Modules + CSS custom properties (`src/styles/tokens.css`) | No build plugin; themes later = swap variables |
 | Dialogs | Native `<dialog>` | Focus trap, Esc and backdrop for free; accessible |
 | Tests | Vitest + Testing Library; Playwright for end-to-end gestures | Vitest shares Vite config |
@@ -25,31 +25,42 @@ Exact versions are whatever is current stable when the project is scaffolded;
 ```
 src/
 ├─ domain/        Pure TypeScript. No React, no DOM, no storage.
-│  ├─ types.ts        Task, Tag, TagColor, RoadmapDoc
+│  ├─ types.ts        Task, Tag, TagColor, RoadmapDoc, file format, limits
 │  ├─ dates.ts        ISODate ⇄ DayIndex, weekday, ISO week, month helpers
+│  ├─ id.ts           newId() (randomUUID, with a fallback outside secure contexts)
+│  ├─ doc.ts          Pure task / tag operations on a RoadmapDoc
+│  ├─ spans.ts        Tag filter → day spans for layout
 │  ├─ packRows.ts     Row packing (TL-8/TL-9, CAL-3)
 │  ├─ scale.ts        Zoom levels, px per day, timeline header cells, range
 │  ├─ calendar.ts     Month grid, per-week bar segments, tasks-per-day counts
 │  ├─ drag.ts         Pure result of a move / resize / create gesture
 │  ├─ history.ts      Undo / redo stack
-│  └─ schema.ts       Validate + migrate a roadmap file (trust boundary)
+│  └─ schema.ts       Validate + serialise a roadmap file (trust boundary)
 ├─ store/
 │  ├─ roadmapStore.ts Tasks + tags + history; every mutation is one undo step
-│  └─ prefsStore.ts   View preferences (not undoable)
+│  ├─ prefsStore.ts   View preferences, persisted (not undoable)
+│  ├─ uiStore.ts      Transient UI: open dialog, selection, quick-create
+│  └─ statusStore.ts  Banner message + unreadable data to offer for download
 ├─ storage/
-│  ├─ StorageAdapter.ts      interface { load(), save() }
+│  ├─ StorageAdapter.ts      interface { load(), save(), backup() }
 │  ├─ localStorageAdapter.ts v1 implementation
+│  ├─ boot.ts                loadRoadmap(): safe startup load (DATA-5)
 │  ├─ autosave.ts            store → adapter, debounced
 │  └─ fileTransfer.ts        Export (download) / Import (file picker)
-├─ components/    Shared UI: Toolbar, TaskDialog, QuickCreate, TagInput,
-│                 TagChip, TagFilter, TagManager, Popover
+├─ components/    Shared UI: Toolbar (incl. calendar nav), TaskDialog,
+│                 QuickCreate, TagInput, TagChip, TagFilter, TagManager,
+│                 Popover, StatusBanner
 ├─ views/
-│  ├─ timeline/   TimelineView, TimelineHeader, TaskBar, useTimelineScroll
-│  └─ calendar/   CalendarView, MonthView, WeekView, YearView, WeekRow
-├─ hooks/         usePointerDrag, useShortcuts
+│  ├─ openTask.ts, taskColor.ts   Helpers shared by both views
+│  ├─ timeline/   TimelineView, TimelineHeader, TaskBar,
+│  │              layout.ts (range / scroll maths), useTimelineRange
+│  └─ calendar/   CalendarView, MonthView, WeekView, YearView, WeekRow,
+│                 MiniMonth, layout.ts (lanes), nav.ts (step + title),
+│                 dayAtPoint.ts, useCalendarGestures
+├─ hooks/         pointerDrag.ts (startPointerDrag), useShortcuts
 ├─ styles/        tokens.css, global.css
 ├─ App.tsx
-└─ main.tsx
+└─ main.tsx       Picks the storage adapter, loads, starts autosave
 ```
 
 **Rule:** `domain/` imports nothing from the other folders. All tricky logic
@@ -116,6 +127,13 @@ v1 uses `localStorage`. The Tauri build swaps in a file-based adapter that
 writes `roadmap.json` to the app data folder. Nothing else changes.
 Validation (`domain/schema.ts`) runs on everything loaded or imported.
 
+At startup `main.tsx` calls `loadRoadmap(adapter)` (`storage/boot.ts`). It
+never throws on bad data: unreadable text is passed to `backup()`, and only
+after the backup succeeds is an empty document saved over it, so the next
+start doesn't back it up again. If the backup fails, the original data is left
+in place. Either way the app starts empty and the banner offers the raw text
+for download.
+
 ## 4. Data flow
 
 ```
@@ -125,7 +143,7 @@ pointer / keyboard
  view component ── preview state during drag
       │ on release / save
       ▼
- roadmapStore.commit(nextDoc) ──► history (past/future)
+ roadmapStore.commit(doc => nextDoc) ──► history (past/future)
       │ subscribe
       ├──► views re-render (filter → pack → position)
       └──► autosave (300 ms debounce) ──► StorageAdapter
@@ -138,6 +156,8 @@ pointer / keyboard
 | Dev | `npm run dev` | http://localhost:5173 |
 | Production build, local | `npm run build && npm run preview` | http://localhost:4173 |
 | Docker | `docker compose up --build` | http://localhost:8080 |
+| Unit tests | `npm test` (watch) / `npm test -- --run` | — |
+| End-to-end tests | `npm run e2e` (starts Vite on port 5199) | — |
 | Desktop (later) | `npm run tauri dev` / `npm run tauri build` | native window |
 
 ## 6. Adding Tauri later (Phase 9)
