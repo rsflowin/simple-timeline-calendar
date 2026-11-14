@@ -21,6 +21,23 @@ describe('tasks', () => {
     expect(() => addTask(EMPTY_DOC, { ...input, title: ' ' })).toThrow('title');
     expect(() => addTask(EMPTY_DOC, { ...input, end: '2026-01-04' })).toThrow('before start');
   });
+  it('rejects details over the limit', () => {
+    expect(() => addTask(EMPTY_DOC, { ...input, details: 'x'.repeat(10_001) })).toThrow(
+      'Task details are longer than 10000 characters',
+    );
+  });
+  it('keeps only existing tag ids, deduped, in order', () => {
+    let doc = createTag(createTag(EMPTY_DOC, 'A', 'g1'), 'B', 'g2');
+    doc = addTask(doc, { ...input, tagIds: ['g1', 'nope', 'g1'] }, 't1', T0);
+    expect(doc.tasks[0].tagIds).toEqual(['g1']);
+    doc = updateTask(doc, 't1', { tagIds: ['g2', 'gone', 'g1', 'g2'] }, T1);
+    expect(doc.tasks[0].tagIds).toEqual(['g2', 'g1']);
+  });
+  it('returns the same doc for a no-op update', () => {
+    const doc = addTask(createTag(EMPTY_DOC, 'A', 'g1'), { ...input, tagIds: ['g1'] }, 't1', T0);
+    expect(updateTask(doc, 'nope', { title: 'X' }, T1)).toBe(doc);
+    expect(updateTask(doc, 't1', { end: '2026-01-09', tagIds: ['g1'] }, T1)).toBe(doc);
+  });
   it('updates and deletes', () => {
     let doc = addTask(EMPTY_DOC, input, 't1', T0);
     doc = updateTask(doc, 't1', { end: '2026-01-12' }, T1);
@@ -36,11 +53,21 @@ describe('tags', () => {
     expect(doc.tags.map((t) => t.color)).toEqual(['blue', 'green']);
     expect(() => createTag(doc, ' backend ')).toThrow('already exists');
   });
+  it('reuses the least-used colour first', () => {
+    let doc = createTag(createTag(EMPTY_DOC, 'A', 'g1'), 'B', 'g2');
+    doc = createTag(deleteTag(doc, 'g1'), 'C', 'g3');
+    expect(doc.tags.map((t) => t.color)).toEqual(['green', 'blue']);
+  });
   it('renames, but not onto another tag name', () => {
     let doc = createTag(createTag(EMPTY_DOC, 'A', 'g1'), 'B', 'g2');
     doc = updateTag(doc, 'g1', { name: 'a', color: 'red' });
     expect(doc.tags[0]).toMatchObject({ name: 'a', color: 'red' });
     expect(() => updateTag(doc, 'g1', { name: 'b' })).toThrow('already exists');
+  });
+  it('returns the same doc for a no-op tag update', () => {
+    const doc = createTag(EMPTY_DOC, 'A', 'g1');
+    expect(updateTag(doc, 'nope', { name: 'X' })).toBe(doc);
+    expect(updateTag(doc, 'g1', { name: 'A', color: 'blue' })).toBe(doc);
   });
   it('deleting a tag removes it from tasks', () => {
     let doc = createTag(EMPTY_DOC, 'A', 'g1');

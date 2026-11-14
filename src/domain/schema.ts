@@ -21,9 +21,10 @@ function text(o: Obj, key: string, path: string, max: number, required = true): 
   const v = o[key];
   if (v === undefined && !required) return '';
   if (typeof v !== 'string') fail(`${path}.${key}`, 'must be text');
-  if (v.length > max) fail(`${path}.${key}`, `is longer than ${max} characters`);
-  if (required && !v.trim()) fail(`${path}.${key}`, 'is empty');
-  return required ? v.trim() : v;
+  const s = required ? v.trim() : v;
+  if (required && !s) fail(`${path}.${key}`, 'is empty');
+  if (s.length > max) fail(`${path}.${key}`, `is longer than ${max} characters`);
+  return s;
 }
 
 function list(o: Obj, key: string): unknown[] {
@@ -63,6 +64,12 @@ export function parseRoadmap(json: string): RoadmapDoc {
     };
   });
   unique(tags, 'tags');
+  const names = new Set<string>();
+  tags.forEach((t, i) => {
+    const n = t.name.toLowerCase();
+    if (names.has(n)) fail(`tags[${i}].name`, `"${t.name}" duplicates another tag`);
+    names.add(n);
+  });
   const tagIds = new Set(tags.map((t) => t.id));
 
   const tasks: Task[] = list(raw, 'tasks').map((t, i) => {
@@ -80,7 +87,11 @@ export function parseRoadmap(json: string): RoadmapDoc {
       start,
       end,
       tagIds: Array.isArray(t.tagIds)
-        ? t.tagIds.filter((id): id is string => typeof id === 'string' && tagIds.has(id))
+        ? [
+            ...new Set(
+              t.tagIds.filter((id): id is string => typeof id === 'string' && tagIds.has(id)),
+            ),
+          ]
         : [],
       createdAt: typeof t.createdAt === 'string' ? t.createdAt : now,
       updatedAt: typeof t.updatedAt === 'string' ? t.updatedAt : now,

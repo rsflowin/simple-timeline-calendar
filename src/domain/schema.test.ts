@@ -42,6 +42,21 @@ describe('parseRoadmap', () => {
     expect(parsed.tasks[0].tagIds).toEqual(['g1']);
     expect(parsed.tasks[0].details).toBe('');
   });
+  it('rejects duplicate tag names, any case', () => {
+    const tags = [...doc.tags, { id: 'g2', name: ' backend ', color: 'green' }];
+    expect(() => parseRoadmap(file({ tags }))).toThrow(
+      'tags[1].name "backend" duplicates another tag',
+    );
+  });
+  it('dedupes task tag ids, keeping first-seen order', () => {
+    const tags = [...doc.tags, { id: 'g2', name: 'Frontend', color: 'green' }];
+    const tasks = [{ ...doc.tasks[0], tagIds: ['g2', 'g1', 'g2'] }];
+    expect(parseRoadmap(file({ tags, tasks })).tasks[0].tagIds).toEqual(['g2', 'g1']);
+  });
+  it('trims before checking length', () => {
+    const tags = [{ id: 'g1', name: 'x'.repeat(50) + ' ', color: 'blue' }];
+    expect(parseRoadmap(file({ tags })).tags[0].name).toBe('x'.repeat(50));
+  });
   it('rejects duplicate ids', () => {
     expect(() => parseRoadmap(file({ tasks: [doc.tasks[0], doc.tasks[0]] }))).toThrow('duplicate');
   });
