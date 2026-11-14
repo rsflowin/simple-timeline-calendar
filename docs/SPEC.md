@@ -49,7 +49,8 @@ multi-user sync, accounts, server-side storage.
 ### 2.1 Dates
 
 - A task covers **whole days**. There are no times.
-- Dates are stored as `YYYY-MM-DD` strings (`ISODate`).
+- Dates are stored as `YYYY-MM-DD` strings (`ISODate`), years 1900–2199. The
+  bound keeps one bad date from making the timeline millions of days wide.
 - **End date is inclusive.** A task with `start = end` is a one-day task
   (milestone).
 - `start <= end` is always true. The UI never lets you save otherwise.

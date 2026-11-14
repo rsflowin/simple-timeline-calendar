@@ -1557,9 +1557,8 @@ const { top, bottom } = useMemo(() => headerRows(zoom, from, to), [zoom, from, t
 - Constants: `ROW_HEIGHT = 32`, bar height 24, header rows 24 px each. The grid area is at least the viewport's height so there's empty space to drag in.
 - Grid lines: one absolutely-positioned 1 px line per bottom header cell. Weekend shading only in `day` zoom. Today line at `(today - from) * px + px / 2`.
 - `TaskBar` is a `<button>` with `aria-label="${title}, ${formatRange(start, end)}"`, `title` tooltip, ellipsis text, background from `taskColor(task, tags)` = CSS variables for the first tag's colour.
-- For now, `[from, to]` = `timelineRange(zoom, min(today, earliest start) − 31, max(today, latest end) + 365)`.
-
-> `shortcut:` every header cell and bar in the range is rendered (no virtualisation). Fine for NF-1 (500 tasks, a few thousand cells); virtualise if profiling shows lag.
+- For now, `[from, to]` = `timelineRange(zoom, today − 183, today + 365)`. Do **not** stretch the range to cover every task: dates go from 1900 to 2199, so one far-off task would make the track millions of pixels wide. Bars are clipped to `[from, to)`.
+- Header cells and grid lines: call `headerRows` only for the visible window ± one viewport width (aligned with `timelineRange(zoom, …)`), not for the whole range. Bars: render only spans that overlap the rendered range.
 
 Verify manually: seed tasks with the dev console (`useRoadmap` can be exposed on `window` in dev only) — overlapping tasks stack, toggling Pack rows switches to one per row, all three zooms show the header from SPEC §3.1 (2026 weekly: Feb starts at W6).
 
@@ -1571,7 +1570,7 @@ Commit — `feat(timeline): render header, grid, today line and packed bars`
 
 Behaviour:
 - Keep `[from, to]` in state. On scroll, if `scrollLeft < clientWidth`, extend: `from' = timelineRange(zoom, from − 183, from)[0]`; after render (`useLayoutEffect`) add `(from − from') * px` to `scrollLeft` so the view doesn't jump. Same on the right edge with `to' = timelineRange(zoom, to, to + 183)[1]` (no scroll adjustment needed).
-- When tasks fall outside the range (e.g. after import), grow the range to include them. Never shrink while mounted.
+- Never shrink while mounted. `scrollToDay(day)` outside the range re-centres the range on that day (`timelineRange(zoom, day − 183, day + 365)`) instead of stretching it, so jumping far away never builds a huge track.
 - On zoom change: before it, read the centre day `from + (scrollLeft + clientWidth / 2) / oldPx`; after re-render, set `scrollLeft = (centreDay − from) * newPx − clientWidth / 2`. Recompute `[from, to]` with `timelineRange` for the new zoom (week alignment).
 - Expose `scrollToDay(day)`; `Today` button and `T` key call it with today. On first mount, centre today.
 
