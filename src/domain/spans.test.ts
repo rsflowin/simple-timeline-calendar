@@ -3,11 +3,22 @@ import { visibleSpans } from './spans';
 import { toDayIndex } from './dates';
 import type { RoadmapDoc, Task } from './types';
 
-const task = (id: string, start: string, end: string, tagIds: string[] = []): Task =>
-  ({ id, title: id, details: '', start, end, tagIds, createdAt: '', updatedAt: '' });
+const task = (id: string, start: string, end: string, tagIds: string[] = []): Task => ({
+  id,
+  title: id,
+  details: '',
+  start,
+  end,
+  tagIds,
+  createdAt: '',
+  updatedAt: '',
+});
 
 const doc: RoadmapDoc = {
-  tags: [{ id: 'x', name: 'X', color: 'blue' }, { id: 'y', name: 'Y', color: 'red' }],
+  tags: [
+    { id: 'x', name: 'X', color: 'blue' },
+    { id: 'y', name: 'Y', color: 'red' },
+  ],
   tasks: [
     task('a', '2026-01-01', '2026-01-03', ['x']),
     task('b', '2026-01-02', '2026-01-02', ['y']),

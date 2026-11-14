@@ -1,6 +1,13 @@
 import {
-  type DayIndex, dayOf, formatMonth, formatMonthYear, isoWeek, monthStart,
-  nextMonthStart, parts, startOfWeek,
+  type DayIndex,
+  dayOf,
+  formatMonth,
+  formatMonthYear,
+  isoWeek,
+  monthStart,
+  nextMonthStart,
+  parts,
+  startOfWeek,
 } from './dates';
 
 export type Zoom = 'day' | 'week' | 'month';
@@ -49,7 +56,7 @@ export function headerRows(zoom: Zoom, from: DayIndex, to: DayIndex) {
   const unit = UNITS[zoom];
   const top: HeaderCell[] = [];
   const bottom: HeaderCell[] = [];
-  for (let day = from; day < to; ) {
+  for (let day = from; day < to;) {
     const next = unit.next(day);
     bottom.push({ key: String(day), label: unit.label(day), start: day, days: next - day });
     const g = unit.group(day);
@@ -62,7 +69,11 @@ export function headerRows(zoom: Zoom, from: DayIndex, to: DayIndex) {
 }
 
 /** Half-open range [from, to) covering minDay..maxDay, padded to whole months (and weeks). */
-export function timelineRange(zoom: Zoom, minDay: DayIndex, maxDay: DayIndex): [DayIndex, DayIndex] {
+export function timelineRange(
+  zoom: Zoom,
+  minDay: DayIndex,
+  maxDay: DayIndex,
+): [DayIndex, DayIndex] {
   const from = monthStart(minDay);
   const to = nextMonthStart(maxDay);
   return zoom === 'week' ? [startOfWeek(from), startOfWeek(to + 6)] : [from, to];

@@ -1,7 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import { addTask, createTag, deleteTag, deleteTask, EMPTY_DOC, updateTag, updateTask } from './doc';
 
-const input = { title: '  Design  ', details: '', start: '2026-01-05', end: '2026-01-09', tagIds: [] };
+const input = {
+  title: '  Design  ',
+  details: '',
+  start: '2026-01-05',
+  end: '2026-01-09',
+  tagIds: [],
+};
 const T0 = '2026-11-13T00:00:00.000Z';
 const T1 = '2026-11-14T00:00:00.000Z';
 

@@ -2,7 +2,15 @@ import type { ISODate } from './dates';
 
 /** Rotation order for new tags — first tag gets blue, not gray. */
 export const TAG_COLORS = [
-  'blue', 'green', 'orange', 'purple', 'pink', 'red', 'yellow', 'brown', 'gray',
+  'blue',
+  'green',
+  'orange',
+  'purple',
+  'pink',
+  'red',
+  'yellow',
+  'brown',
+  'gray',
 ] as const;
 export type TagColor = (typeof TAG_COLORS)[number];
 

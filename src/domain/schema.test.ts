@@ -4,8 +4,18 @@ import type { RoadmapDoc } from './types';
 
 const doc: RoadmapDoc = {
   tags: [{ id: 'g1', name: 'Backend', color: 'blue' }],
-  tasks: [{ id: 't1', title: 'API', details: 'x', start: '2026-01-05', end: '2026-01-09',
-            tagIds: ['g1'], createdAt: 'c', updatedAt: 'u' }],
+  tasks: [
+    {
+      id: 't1',
+      title: 'API',
+      details: 'x',
+      start: '2026-01-05',
+      end: '2026-01-09',
+      tagIds: ['g1'],
+      createdAt: 'c',
+      updatedAt: 'u',
+    },
+  ],
 };
 const file = (patch: object) => JSON.stringify({ ...JSON.parse(serializeRoadmap(doc)), ...patch });
 const withTask = (patch: object) => file({ tasks: [{ ...doc.tasks[0], ...patch }] });
@@ -18,10 +28,14 @@ describe('parseRoadmap', () => {
     expect(() => parseRoadmap(file({ version: 99 }))).toThrow('version 99');
   });
   it('names the bad field', () => {
-    expect(() => parseRoadmap(withTask({ end: '2026-01-01' }))).toThrow('tasks[0].end is before start');
+    expect(() => parseRoadmap(withTask({ end: '2026-01-01' }))).toThrow(
+      'tasks[0].end is before start',
+    );
     expect(() => parseRoadmap(withTask({ start: '2026-02-30' }))).toThrow('tasks[0].start');
     expect(() => parseRoadmap(withTask({ title: '  ' }))).toThrow('tasks[0].title is empty');
-    expect(() => parseRoadmap(file({ tags: [{ id: 'g', name: 'A', color: 'teal' }] }))).toThrow('tags[0].color');
+    expect(() => parseRoadmap(file({ tags: [{ id: 'g', name: 'A', color: 'teal' }] }))).toThrow(
+      'tags[0].color',
+    );
   });
   it('drops unknown tag ids and fills optional fields', () => {
     const parsed = parseRoadmap(withTask({ tagIds: ['g1', 'nope'], details: undefined }));

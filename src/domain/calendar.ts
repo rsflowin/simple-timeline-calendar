@@ -18,7 +18,9 @@ export interface Segment<T> extends Span {
 
 /** The pieces of `items` that fall in the 7 days from weekStart, packed into lanes. */
 export function weekLanes<T extends Span>(
-  items: readonly T[], weekStart: DayIndex, pack: boolean,
+  items: readonly T[],
+  weekStart: DayIndex,
+  pack: boolean,
 ): Segment<T>[][] {
   const weekEnd = weekStart + 6;
   const segments = items
@@ -35,7 +37,11 @@ export function weekLanes<T extends Span>(
 }
 
 /** Per weekday (Mon..Sun), how many segments sit in lanes at index >= shown (for "+N more"). */
-export function hiddenCounts(lanes: readonly Span[][], shown: number, weekStart: DayIndex): number[] {
+export function hiddenCounts(
+  lanes: readonly Span[][],
+  shown: number,
+  weekStart: DayIndex,
+): number[] {
   const counts = Array<number>(7).fill(0);
   for (const lane of lanes.slice(shown))
     for (const seg of lane)
@@ -44,7 +50,11 @@ export function hiddenCounts(lanes: readonly Span[][], shown: number, weekStart:
 }
 
 /** Number of tasks covering each day in [from, to). Days with none are absent. */
-export function tasksPerDay(items: readonly Span[], from: DayIndex, to: DayIndex): Map<DayIndex, number> {
+export function tasksPerDay(
+  items: readonly Span[],
+  from: DayIndex,
+  to: DayIndex,
+): Map<DayIndex, number> {
   const counts = new Map<DayIndex, number>();
   for (const t of items)
     for (let day = Math.max(t.start, from); day <= Math.min(t.end, to - 1); day++)

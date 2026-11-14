@@ -1,7 +1,16 @@
 import { describe, expect, it } from 'vitest';
 import {
-  formatMonthYear, formatRange, fromDayIndex, isoWeek, isValidISODate,
-  monthStart, nextMonthStart, startOfWeek, toDayIndex as d, todayISO, weekday,
+  formatMonthYear,
+  formatRange,
+  fromDayIndex,
+  isoWeek,
+  isValidISODate,
+  monthStart,
+  nextMonthStart,
+  startOfWeek,
+  toDayIndex as d,
+  todayISO,
+  weekday,
 } from './dates';
 
 describe('dates', () => {

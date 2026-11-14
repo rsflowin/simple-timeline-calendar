@@ -1,5 +1,14 @@
 import { isValidISODate } from './dates';
-import { FILE_FORMAT, FILE_VERSION, LIMITS, TAG_COLORS, type RoadmapDoc, type Tag, type TagColor, type Task } from './types';
+import {
+  FILE_FORMAT,
+  FILE_VERSION,
+  LIMITS,
+  TAG_COLORS,
+  type RoadmapDoc,
+  type Tag,
+  type TagColor,
+  type Task,
+} from './types';
 
 type Obj = Record<string, unknown>;
 const isObj = (v: unknown): v is Obj => typeof v === 'object' && v !== null && !Array.isArray(v);
@@ -39,13 +48,19 @@ function parseJson(json: string): unknown {
 export function parseRoadmap(json: string): RoadmapDoc {
   const raw = parseJson(json);
   if (!isObj(raw) || raw.format !== FILE_FORMAT) throw new Error('Not a Timeline Calendar file');
-  if (raw.version !== FILE_VERSION) throw new Error(`Unsupported file version ${String(raw.version)}`);
+  if (raw.version !== FILE_VERSION)
+    throw new Error(`Unsupported file version ${String(raw.version)}`);
 
   const tags: Tag[] = list(raw, 'tags').map((t, i) => {
     const p = `tags[${i}]`;
     if (!isObj(t)) fail(p, 'must be an object');
-    if (!TAG_COLORS.includes(t.color as TagColor)) fail(`${p}.color`, `must be one of ${TAG_COLORS.join(', ')}`);
-    return { id: text(t, 'id', p, LIMITS.id), name: text(t, 'name', p, LIMITS.tagName), color: t.color as TagColor };
+    if (!TAG_COLORS.includes(t.color as TagColor))
+      fail(`${p}.color`, `must be one of ${TAG_COLORS.join(', ')}`);
+    return {
+      id: text(t, 'id', p, LIMITS.id),
+      name: text(t, 'name', p, LIMITS.tagName),
+      color: t.color as TagColor,
+    };
   });
   unique(tags, 'tags');
   const tagIds = new Set(tags.map((t) => t.id));
@@ -77,5 +92,9 @@ export function parseRoadmap(json: string): RoadmapDoc {
 }
 
 export function serializeRoadmap(doc: RoadmapDoc): string {
-  return JSON.stringify({ format: FILE_FORMAT, version: FILE_VERSION, tasks: doc.tasks, tags: doc.tags }, null, 2);
+  return JSON.stringify(
+    { format: FILE_FORMAT, version: FILE_VERSION, tasks: doc.tasks, tags: doc.tags },
+    null,
+    2,
+  );
 }

@@ -21,7 +21,9 @@ export function fromDayIndex(day: DayIndex): ISODate {
 
 /** True for real calendar dates only ('2026-02-30' is rejected by the round trip). */
 export function isValidISODate(value: unknown): value is ISODate {
-  return typeof value === 'string' && ISO_DATE.test(value) && fromDayIndex(toDayIndex(value)) === value;
+  return (
+    typeof value === 'string' && ISO_DATE.test(value) && fromDayIndex(toDayIndex(value)) === value
+  );
 }
 
 /** Today in the user's local time zone — the only place that reads the clock's zone. */
@@ -80,5 +82,7 @@ export const formatMonthDay = (day: DayIndex) => MONTH_DAY.format(day * MS_PER_D
 export const formatWeekday = (day: DayIndex) => WEEKDAY.format(day * MS_PER_DAY);
 
 export function formatRange(start: DayIndex, end: DayIndex): string {
-  return start === end ? formatMonthDay(start) : `${formatMonthDay(start)} – ${formatMonthDay(end)}`;
+  return start === end
+    ? formatMonthDay(start)
+    : `${formatMonthDay(start)} – ${formatMonthDay(end)}`;
 }
