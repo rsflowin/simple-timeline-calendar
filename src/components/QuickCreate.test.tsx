@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { act, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { EMPTY_DOC } from '../domain/doc';
@@ -33,6 +33,21 @@ describe('QuickCreate', () => {
     expect(tasks()).toMatchObject([{ title: 'Launch', start: '2026-01-03', end: '2026-01-09' }]);
     expect(useUi.getState().quickCreate).toBeNull();
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
+
+  it('Enter during IME composition creates nothing', async () => {
+    open();
+    await userEvent.keyboard('Launch');
+    fireEvent.keyDown(screen.getByRole('textbox'), { key: 'Enter', isComposing: true });
+    fireEvent.keyDown(screen.getByRole('textbox'), { key: 'Enter', keyCode: 229 });
+    expect(tasks()).toHaveLength(0);
+    expect(useUi.getState().quickCreate).not.toBeNull();
+  });
+
+  it('Escape during IME composition keeps it open', () => {
+    open();
+    fireEvent.keyDown(screen.getByRole('textbox'), { key: 'Escape', isComposing: true });
+    expect(useUi.getState().quickCreate).not.toBeNull();
   });
 
   it('Enter with a blank title closes without creating', async () => {

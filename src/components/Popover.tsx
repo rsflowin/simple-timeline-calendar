@@ -41,7 +41,7 @@ export function Popover({ anchor, label, onClose, children }: PopoverProps) {
       aria-label={label}
       className={styles.popover}
       onKeyDown={(e) => {
-        if (e.key === 'Escape') onClose();
+        if (e.key === 'Escape' && !e.nativeEvent.isComposing && e.keyCode !== 229) onClose();
       }}
     >
       {children}

@@ -46,6 +46,17 @@ describe('TaskDialog', () => {
     expect(tasks()).toHaveLength(1);
   });
 
+  it('Ctrl+Enter during IME composition does not save', async () => {
+    openWith(() => useUi.getState().openNew());
+    await userEvent.type(screen.getByLabelText('Title'), 'Plan');
+    fireEvent.keyDown(screen.getByLabelText('Title'), {
+      key: 'Enter',
+      ctrlKey: true,
+      isComposing: true,
+    });
+    expect(tasks()).toHaveLength(0);
+  });
+
   it('disables Save while the title is blank', async () => {
     openWith(() => useUi.getState().openNew());
     expect(save()).toBeDisabled();

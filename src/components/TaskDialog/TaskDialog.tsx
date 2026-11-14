@@ -77,6 +77,7 @@ function TaskForm({ id, initial, label }: { id?: string; initial: TaskInput; lab
     save();
   };
   const onKeyDown = (e: KeyboardEvent) => {
+    if (e.nativeEvent.isComposing || e.keyCode === 229) return;
     if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
       e.preventDefault();
       save();

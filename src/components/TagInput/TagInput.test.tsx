@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { useState } from 'react';
 import { beforeEach, describe, expect, it } from 'vitest';
@@ -70,8 +70,31 @@ describe('TagInput', () => {
     render(<Harness />);
     await userEvent.type(screen.getByRole('combobox'), 'x'.repeat(51));
     await userEvent.keyboard('{Enter}');
-    expect(screen.getByText(/longer than 50/)).toBeInTheDocument();
+    expect(screen.getByRole('alert')).toHaveTextContent(/longer than 50/);
     expect(selected).toEqual([]);
+  });
+
+  it('Enter during IME composition selects and creates nothing', async () => {
+    render(<Harness />);
+    const input = screen.getByRole('combobox');
+    await userEvent.type(input, 'Ops');
+    fireEvent.keyDown(input, { key: 'Enter', isComposing: true });
+    fireEvent.keyDown(input, { key: 'Enter', keyCode: 229 });
+    expect(selected).toEqual([]);
+    expect(tags()).toHaveLength(3);
+  });
+
+  it('Escape closes only the open dropdown', async () => {
+    render(<Harness />);
+    const input = screen.getByRole('combobox');
+    await userEvent.type(input, 'de');
+    expect(fireEvent.keyDown(input, { key: 'Escape' })).toBe(false); // default prevented
+    expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
+    expect(input).toHaveAttribute('aria-expanded', 'false');
+    // Closed: Escape passes through to the dialog.
+    expect(fireEvent.keyDown(input, { key: 'Escape' })).toBe(true);
+    await userEvent.keyboard('{ArrowDown}');
+    expect(screen.getByRole('listbox')).toBeInTheDocument();
   });
 
   it('Backspace on an empty input removes the last chip', async () => {

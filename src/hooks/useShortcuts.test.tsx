@@ -29,14 +29,48 @@ describe('useShortcuts', () => {
     expect(escape).toHaveBeenCalledOnce();
   });
 
-  it('ignores keys inside an open dialog', () => {
+  it('ignores keys inside a dialog or popover, except escape', () => {
     const n = vi.fn();
-    renderHook(() => useShortcuts({ n }));
-    const button = document.body
+    const escape = vi.fn();
+    renderHook(() => useShortcuts({ n, escape }));
+    const inDialog = document.body
       .appendChild(document.createElement('dialog'))
       .appendChild(document.createElement('button'));
-    press('n', {}, button);
+    const popover = document.body.appendChild(document.createElement('div'));
+    popover.setAttribute('role', 'dialog');
+    const inPopover = popover.appendChild(document.createElement('button'));
+    press('n', {}, inDialog);
+    press('n', {}, inPopover);
+    press('Escape', {}, inPopover);
     expect(n).not.toHaveBeenCalled();
+    expect(escape).toHaveBeenCalledOnce();
+  });
+
+  it('ignores keys during IME composition', () => {
+    const n = vi.fn();
+    renderHook(() => useShortcuts({ n }));
+    press('n', { isComposing: true });
+    press('Process', { keyCode: 229 } as KeyboardEventInit);
+    expect(n).not.toHaveBeenCalled();
+  });
+
+  it('reads the physical key when the layout gives a non-ASCII character', () => {
+    const n = vi.fn();
+    const one = vi.fn();
+    renderHook(() => useShortcuts({ n, '1': one }));
+    press('ㅜ', { code: 'KeyN' });
+    press('1', { code: 'Digit1' });
+    expect(n).toHaveBeenCalledOnce();
+    expect(one).toHaveBeenCalledOnce();
+  });
+
+  it('keeps e.key for ASCII layouts (AZERTY a is on KeyQ)', () => {
+    const a = vi.fn();
+    const q = vi.fn();
+    renderHook(() => useShortcuts({ a, q }));
+    press('a', { code: 'KeyQ' });
+    expect(a).toHaveBeenCalledOnce();
+    expect(q).not.toHaveBeenCalled();
   });
 
   it('maps ctrl and meta to mod, with shift', () => {

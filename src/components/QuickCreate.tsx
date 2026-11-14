@@ -29,7 +29,7 @@ function QuickCreateForm({
   const [error, setError] = useState<string | null>(null);
 
   const onKeyDown = (e: KeyboardEvent) => {
-    if (e.key !== 'Enter') return;
+    if (e.key !== 'Enter' || e.nativeEvent.isComposing || e.keyCode === 229) return;
     e.preventDefault();
     if (title.trim()) {
       try {
@@ -58,7 +58,11 @@ function QuickCreateForm({
           }}
           onKeyDown={onKeyDown}
         />
-        {error && <p className={styles.error}>{error}</p>}
+        {error && (
+          <p role="alert" className={styles.error}>
+            {error}
+          </p>
+        )}
         <button
           type="button"
           className={styles.more}

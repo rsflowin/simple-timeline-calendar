@@ -56,7 +56,11 @@ export function TagInput({ value, onChange, id }: TagInputProps) {
   };
 
   const onKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+    if (e.nativeEvent.isComposing || e.keyCode === 229) return; // IME (e.g. Korean) owns the key
+    if (e.key === 'Escape' && expanded) {
+      e.preventDefault(); // close the list, not the surrounding dialog
+      setOpen(false);
+    } else if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
       e.preventDefault();
       setOpen(true);
       const n = options.length;
@@ -125,7 +129,11 @@ export function TagInput({ value, onChange, id }: TagInputProps) {
           ))}
         </ul>
       )}
-      {error && <p className={styles.error}>{error}</p>}
+      {error && (
+        <p role="alert" className={styles.error}>
+          {error}
+        </p>
+      )}
     </div>
   );
 }
