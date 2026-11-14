@@ -1,0 +1,29 @@
+/* Every colour in the app lives here. Tag fg on tag bg is >= 4.5:1 contrast. */
+:root {
+  --color-surface: #ffffff;
+  --color-text: #37352f;
+  --color-text-muted: #6f6e69;
+  --color-grid-line: #e9e9e7;
+  --color-weekend: #f7f7f5;
+  --color-today-line: #e03e3e;
+  --color-selection: #2383e2;
+
+  --tag-blue-bg: #e7f3f8;
+  --tag-blue-fg: #1f5f8b;
+  --tag-green-bg: #edf3ec;
+  --tag-green-fg: #2f6a3a;
+  --tag-orange-bg: #fbecdd;
+  --tag-orange-fg: #8a4b14;
+  --tag-purple-bg: #f4f0f7;
+  --tag-purple-fg: #5e3b8a;
+  --tag-pink-bg: #f9eef3;
+  --tag-pink-fg: #8a2f5c;
+  --tag-red-bg: #fdebec;
+  --tag-red-fg: #a1312b;
+  --tag-yellow-bg: #fbf3db;
+  --tag-yellow-fg: #765b0f;
+  --tag-brown-bg: #f4eeee;
+  --tag-brown-fg: #6b4a3a;
+  --tag-gray-bg: #f1f1ef;
+  --tag-gray-fg: #4b4a47;
+}
