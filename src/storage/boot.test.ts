@@ -30,6 +30,7 @@ describe('loadRoadmap', () => {
     expect(a.backup).toHaveBeenCalledWith('{broken');
     expect(result.doc).toEqual({ tasks: [], tags: [] });
     expect(result.error).toMatch('not valid JSON');
+    expect(result.error).toMatch('A backup copy was kept; starting with an empty roadmap.');
     expect(result.unreadable).toBe('{broken');
   });
   it('overwrites unreadable data with an empty doc after backing it up, so it is backed up once', async () => {
@@ -56,7 +57,9 @@ describe('loadRoadmap', () => {
     };
     const result = await loadRoadmap(a);
     expect(a.save).not.toHaveBeenCalled();
-    expect(result.error).toMatch('The backup could not be written');
+    expect(result.error).toMatch("Saved roadmap couldn't be read (File is not valid JSON)");
+    expect(result.error).toMatch('no backup could be written');
+    expect(result.error).not.toMatch('backup copy was kept');
     expect(result.unreadable).toBe('{broken');
     expect(result.doc).toEqual({ tasks: [], tags: [] });
   });
