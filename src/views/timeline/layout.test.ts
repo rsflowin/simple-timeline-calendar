@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { dayOf, weekday } from '../../domain/dates';
 import {
   centreDay,
+  dayAt,
   headerWindow,
   rangeAround,
   scrollLeftFor,
@@ -103,5 +104,14 @@ describe('settle', () => {
     const next = settle(state(), -20_000, wide);
     expect(-20_000 + (from - next.from) * 16).toBeGreaterThanOrEqual(wide);
     expect(next.to).toBe(to);
+  });
+});
+
+describe('dayAt', () => {
+  it('maps an x offset on the track to the day under it', () => {
+    expect(dayAt(1000, 32, 0)).toBe(1000);
+    expect(dayAt(1000, 32, 31.9)).toBe(1000);
+    expect(dayAt(1000, 32, 32)).toBe(1001);
+    expect(dayAt(1000, 32, -1)).toBe(999);
   });
 });

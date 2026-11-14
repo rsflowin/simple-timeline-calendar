@@ -58,3 +58,6 @@ export function settle(st: RangeState, scrollLeft: number, clientWidth: number):
     ? st
     : { ...st, from, to, win };
 }
+
+/** Day under a point `x` px from the track's left edge (`from`). */
+export const dayAt = (from: DayIndex, px: number, x: number): DayIndex => from + Math.floor(x / px);

@@ -1,10 +1,11 @@
 // @vitest-environment jsdom
-import { act, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { fromDayIndex, todayISO, toDayIndex } from '../../domain/dates';
 import type { RoadmapDoc, Task } from '../../domain/types';
 import { usePrefs } from '../../store/prefsStore';
 import { useRoadmap } from '../../store/roadmapStore';
+import { useUi } from '../../store/uiStore';
 import { TimelineView } from './TimelineView';
 
 const today = toDayIndex(todayISO());
@@ -61,6 +62,13 @@ describe('TimelineView', () => {
     usePrefs.setState({ tagFilter: ['red'] });
     render(<TimelineView />);
     expect(screen.getAllByRole('button').map((b) => b.textContent)).toEqual(['Task a']);
+  });
+
+  it('Enter on a focused bar selects it and opens the Task dialog (NF-4)', () => {
+    useUi.setState({ editing: null, selectedId: null });
+    render(<TimelineView />);
+    fireEvent.click(screen.getByRole('button', { name: /^Task b,/ }), { detail: 0 });
+    expect(useUi.getState()).toMatchObject({ selectedId: 'b', editing: { mode: 'edit', id: 'b' } });
   });
 
   it('renders only tasks overlapping the rendered range', () => {

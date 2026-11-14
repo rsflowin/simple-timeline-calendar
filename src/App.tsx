@@ -4,6 +4,7 @@ import { QuickCreate } from './components/QuickCreate';
 import { StatusBanner } from './components/StatusBanner';
 import { TaskDialog } from './components/TaskDialog/TaskDialog';
 import { todayISO, toDayIndex } from './domain/dates';
+import { deleteTask } from './domain/doc';
 import { useShortcuts } from './hooks/useShortcuts';
 import { usePrefs } from './store/prefsStore';
 import { useRoadmap } from './store/roadmapStore';
@@ -15,11 +16,19 @@ const setPrefs = usePrefs.getState().set;
 const roadmap = useRoadmap.getState();
 const ui = useUi.getState();
 const timeline = createRef<TimelineHandle>();
+const deleteSelected = () => {
+  const id = useUi.getState().selectedId;
+  if (!id) return;
+  roadmap.commit((d) => deleteTask(d, id));
+  ui.select(null);
+};
 const goToToday = () => timeline.current?.scrollToDay(toDayIndex(todayISO()));
 
 const SHORTCUTS: Record<string, () => void> = {
   n: () => ui.openNew(),
   t: goToToday,
+  delete: deleteSelected,
+  backspace: deleteSelected,
   'mod+z': roadmap.undo,
   'mod+shift+z': roadmap.redo,
   'mod+y': roadmap.redo,
