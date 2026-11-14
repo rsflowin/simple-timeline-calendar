@@ -1,4 +1,5 @@
 import { Toolbar } from './components/Toolbar/Toolbar';
+import { QuickCreate } from './components/QuickCreate';
 import { StatusBanner } from './components/StatusBanner';
 import { TaskDialog } from './components/TaskDialog/TaskDialog';
 import { useShortcuts } from './hooks/useShortcuts';
@@ -37,6 +38,7 @@ export default function App() {
         {view === 'timeline' ? <div>Timeline view</div> : <div>Calendar view</div>}
       </main>
       <TaskDialog />
+      <QuickCreate />
     </div>
   );
 }
