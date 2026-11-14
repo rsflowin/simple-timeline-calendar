@@ -38,7 +38,8 @@ One logical change per commit, message `type(scope): summary`, where type is
 
 ## Pull requests
 
-Every PR keeps this green (CI runs the same):
+Every PR keeps this green (CI runs the same, plus `npm run e2e` and
+`docker build .`):
 
 ```bash
 npm run lint && npm run typecheck && npm test -- --run && npm run build
