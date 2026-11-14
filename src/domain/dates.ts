@@ -75,11 +75,13 @@ export function isoWeek(day: DayIndex): { week: number; year: number; month: num
 const fmt = (o: Intl.DateTimeFormatOptions) =>
   new Intl.DateTimeFormat(LOCALE, { ...o, timeZone: 'UTC' });
 const MONTH = fmt({ month: 'short' });
+const MONTH_NAME = fmt({ month: 'long' });
 const MONTH_YEAR = fmt({ month: 'short', year: 'numeric' });
 const MONTH_DAY = fmt({ month: 'short', day: 'numeric' });
 const WEEKDAY = fmt({ weekday: 'short' });
 
 export const formatMonth = (day: DayIndex) => MONTH.format(day * MS_PER_DAY);
+export const formatMonthName = (day: DayIndex) => MONTH_NAME.format(day * MS_PER_DAY);
 export const formatMonthYear = (day: DayIndex) => MONTH_YEAR.format(day * MS_PER_DAY);
 export const formatMonthDay = (day: DayIndex) => MONTH_DAY.format(day * MS_PER_DAY);
 export const formatWeekday = (day: DayIndex) => WEEKDAY.format(day * MS_PER_DAY);

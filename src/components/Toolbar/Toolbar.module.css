@@ -1,5 +1,6 @@
 .toolbar {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 8px;
   padding: 8px 12px;
@@ -34,6 +35,12 @@
   border-color: var(--color-selection);
   background: var(--color-accent-bg);
   color: var(--color-selection);
+}
+
+.title {
+  min-width: 11em;
+  font-weight: 600;
+  white-space: nowrap;
 }
 
 .spacer {

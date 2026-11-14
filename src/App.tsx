@@ -9,6 +9,7 @@ import { useShortcuts } from './hooks/useShortcuts';
 import { usePrefs } from './store/prefsStore';
 import { useRoadmap } from './store/roadmapStore';
 import { useUi } from './store/uiStore';
+import { CalendarView, type CalendarHandle } from './views/calendar/CalendarView';
 import { TimelineView, type TimelineHandle } from './views/timeline/TimelineView';
 import styles from './App.module.css';
 
@@ -16,14 +17,20 @@ const setPrefs = usePrefs.getState().set;
 const roadmap = useRoadmap.getState();
 const ui = useUi.getState();
 const timeline = createRef<TimelineHandle>();
+const calendar = createRef<CalendarHandle>();
 const deleteSelected = () => {
   const id = useUi.getState().selectedId;
   if (!id) return;
   roadmap.commit((d) => deleteTask(d, id));
   ui.select(null);
-  timeline.current?.focus(); // the focused bar is gone; don't drop focus to <body> (NF-4)
+  // the focused bar is gone; don't drop focus to <body> (NF-4). Only one view is mounted.
+  timeline.current?.focus();
+  calendar.current?.focus();
 };
-const goToToday = () => timeline.current?.scrollToDay(toDayIndex(todayISO()));
+const goToToday = () =>
+  usePrefs.getState().view === 'calendar'
+    ? setPrefs({ cursor: todayISO() })
+    : timeline.current?.scrollToDay(toDayIndex(todayISO()));
 
 const SHORTCUTS: Record<string, () => void> = {
   n: () => ui.openNew(),
@@ -50,7 +57,7 @@ export default function App() {
       <Toolbar onToday={goToToday} />
       <StatusBanner />
       <main className={styles.body}>
-        {view === 'timeline' ? <TimelineView ref={timeline} /> : <div>Calendar view</div>}
+        {view === 'timeline' ? <TimelineView ref={timeline} /> : <CalendarView ref={calendar} />}
       </main>
       <TaskDialog />
       <QuickCreate />
