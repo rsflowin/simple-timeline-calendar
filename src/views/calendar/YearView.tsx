@@ -45,7 +45,10 @@ export function YearView({ cursor, spans }: { cursor: DayIndex; spans: readonly 
         <Popover
           anchor={open.anchor}
           label={`Tasks on ${formatMonthDay(open.day)}`}
-          onClose={() => setOpen(null)}
+          onClose={() => {
+            open.el.focus(); // Esc / outside click: back to the day (NF-4)
+            setOpen(null);
+          }}
         >
           <div className={styles.dayHead}>{formatMonthDay(open.day)}</div>
           <DayTasks

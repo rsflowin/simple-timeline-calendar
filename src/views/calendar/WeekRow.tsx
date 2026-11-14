@@ -165,7 +165,10 @@ export function WeekRow({
         <Popover
           anchor={more.anchor}
           label={`Tasks on ${formatMonthDay(more.day)}`}
-          onClose={() => setMore(null)}
+          onClose={() => {
+            more.el.focus(); // Esc / outside click: back to the +N more button (NF-4)
+            setMore(null);
+          }}
         >
           <DayTasks
             day={more.day}

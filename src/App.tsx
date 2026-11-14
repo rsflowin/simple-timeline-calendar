@@ -18,15 +18,18 @@ const roadmap = useRoadmap.getState();
 const ui = useUi.getState();
 const timeline = createRef<TimelineHandle>();
 const calendar = createRef<CalendarHandle>();
+// the deleted bar had focus; don't drop it to <body> (NF-4). Only one view is mounted.
+const focusView = () => {
+  timeline.current?.focus();
+  calendar.current?.focus();
+};
 const deleteSelected = () => {
   const id = useUi.getState().selectedId;
   // only from inside the view: Delete on a toolbar button must not hit an off-screen selection
   if (!id || !document.activeElement?.closest('main')) return;
   roadmap.commit((d) => deleteTask(d, id));
   ui.select(null);
-  // the focused bar is gone; don't drop focus to <body> (NF-4). Only one view is mounted.
-  timeline.current?.focus();
-  calendar.current?.focus();
+  focusView();
 };
 const goToToday = () =>
   usePrefs.getState().view === 'calendar'
@@ -60,7 +63,7 @@ export default function App() {
       <main className={styles.body}>
         {view === 'timeline' ? <TimelineView ref={timeline} /> : <CalendarView ref={calendar} />}
       </main>
-      <TaskDialog />
+      <TaskDialog onDeleted={focusView} />
       <QuickCreate />
     </div>
   );

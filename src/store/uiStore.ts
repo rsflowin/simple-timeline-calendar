@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { todayISO, type ISODate } from '../domain/dates';
 import type { TaskInput } from '../domain/doc';
+import { usePrefs } from './prefsStore';
 
 type Editing = { mode: 'new'; draft: TaskInput } | { mode: 'edit'; id: string } | null;
 
@@ -9,7 +10,8 @@ interface UiState {
   editing: Editing;
   selectedId: string | null;
   quickCreate: { start: ISODate; end: ISODate; anchor: DOMRect } | null;
-  /** Opens the Task dialog for a new task; dates default to today – today (TD-2). */
+  /** Opens the Task dialog for a new task; dates default to today – today (TD-2), tags to the
+   * active filter so the task doesn't vanish on save. */
   openNew(draft?: Partial<TaskInput>): void;
   openEdit(id: string): void;
   close(): void;
@@ -27,7 +29,14 @@ export const useUi = create<UiState>()((set) => ({
     set({
       editing: {
         mode: 'new',
-        draft: { title: '', details: '', start: today, end: today, tagIds: [], ...draft },
+        draft: {
+          title: '',
+          details: '',
+          start: today,
+          end: today,
+          tagIds: usePrefs.getState().tagFilter,
+          ...draft,
+        },
       },
     });
   },

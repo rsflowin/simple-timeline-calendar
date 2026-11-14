@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { todayISO } from '../../domain/dates';
 import { addTask, EMPTY_DOC } from '../../domain/doc';
 import { useRoadmap } from '../../store/roadmapStore';
@@ -102,6 +102,18 @@ describe('TaskDialog', () => {
     expect(useUi.getState().editing).toBeNull();
     act(() => useRoadmap.getState().undo());
     expect(tasks()).toMatchObject([{ id: 't1', title: 'Ship' }]);
+  });
+
+  it('Delete clears the selection and hands focus back to the view (NF-4)', async () => {
+    const onDeleted = vi.fn();
+    useRoadmap.getState().reset(addTask(EMPTY_DOC, existing, 't1'));
+    useUi.getState().select('t1');
+    render(<TaskDialog onDeleted={onDeleted} />);
+    act(() => useUi.getState().openEdit('t1'));
+    await userEvent.click(screen.getByRole('button', { name: 'Delete' }));
+    expect(useUi.getState().selectedId).toBeNull();
+    expect(onDeleted).toHaveBeenCalledTimes(1);
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 
   it('Cancel closes without saving', async () => {

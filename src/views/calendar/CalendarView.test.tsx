@@ -116,6 +116,15 @@ describe('CalendarView — +N more (CAL-4)', () => {
     window.dispatchEvent(new MouseEvent('pointerup'));
     expect(useUi.getState().quickCreate).toBeNull();
   });
+
+  it('Esc closes the list and returns focus to its +N more button (NF-4)', () => {
+    render(<CalendarView />);
+    const more = screen.getByRole('button', { name: '2 more on Nov 11' });
+    fireEvent.click(more);
+    fireEvent.keyDown(screen.getByRole('dialog', { name: 'Tasks on Nov 11' }), { key: 'Escape' });
+    expect(screen.queryByRole('dialog')).toBeNull();
+    expect(more).toHaveFocus();
+  });
 });
 
 describe('CalendarView — gestures', () => {
@@ -260,6 +269,14 @@ describe('CalendarView — year', () => {
     expect(pop).toHaveTextContent('Task cTask e+ Add task');
     fireEvent.click(screen.getByRole('button', { name: '+ Add task' }));
     expect(useUi.getState().quickCreate).toMatchObject({ start: '2026-11-14', end: '2026-11-14' });
+  });
+
+  it('an outside click closes the day list and returns focus to the day (NF-4)', () => {
+    render(<CalendarView />);
+    fireEvent.click(day('Nov 14, 2 tasks'));
+    fireEvent.pointerDown(document.body);
+    expect(screen.queryByRole('dialog')).toBeNull();
+    expect(day('Nov 14, 2 tasks')).toHaveFocus();
   });
 
   it('clicking a month name opens Month view for it (CAL-12)', () => {

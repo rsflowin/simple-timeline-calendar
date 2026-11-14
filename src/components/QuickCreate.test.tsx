@@ -3,6 +3,7 @@ import { act, fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { EMPTY_DOC } from '../domain/doc';
+import { usePrefs } from '../store/prefsStore';
 import { useRoadmap } from '../store/roadmapStore';
 import { useUi } from '../store/uiStore';
 import { QuickCreate } from './QuickCreate';
@@ -33,6 +34,15 @@ describe('QuickCreate', () => {
     expect(tasks()).toMatchObject([{ title: 'Launch', start: '2026-01-03', end: '2026-01-09' }]);
     expect(useUi.getState().quickCreate).toBeNull();
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
+
+  it('new tasks get the active tag filter, so they stay visible', async () => {
+    useRoadmap.getState().reset({ tasks: [], tags: [{ id: 'g', name: 'A', color: 'blue' }] });
+    usePrefs.setState({ tagFilter: ['g'] });
+    open();
+    await userEvent.keyboard('Launch{Enter}');
+    usePrefs.setState({ tagFilter: [] });
+    expect(tasks()).toMatchObject([{ title: 'Launch', tagIds: ['g'] }]);
   });
 
   it('Enter during IME composition creates nothing', async () => {

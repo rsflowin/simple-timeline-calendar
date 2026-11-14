@@ -7,8 +7,9 @@ import { useUi } from '../../store/uiStore';
 import { TagInput } from '../TagInput/TagInput';
 import styles from './TaskDialog.module.css';
 
-/** Task dialog (TD-1 … TD-5), open while `uiStore.editing` is set. Mount once. */
-export function TaskDialog() {
+/** Task dialog (TD-1 … TD-5), open while `uiStore.editing` is set. Mount once.
+ * `onDeleted` runs after Delete, once the dialog is closed, to put focus back (NF-4). */
+export function TaskDialog({ onDeleted }: { onDeleted?(): void }) {
   const editing = useUi((s) => s.editing);
   const close = useUi((s) => s.close);
   const doc = useDoc();
@@ -38,12 +39,30 @@ export function TaskDialog() {
   const label = editId === undefined ? 'New task' : 'Edit task';
   return (
     <dialog ref={ref} className={styles.dialog} aria-label={label} onClose={close}>
-      {initial && <TaskForm key={editId ?? 'new'} id={editId} initial={initial} label={label} />}
+      {initial && (
+        <TaskForm
+          key={editId ?? 'new'}
+          id={editId}
+          initial={initial}
+          label={label}
+          onDeleted={onDeleted}
+        />
+      )}
     </dialog>
   );
 }
 
-function TaskForm({ id, initial, label }: { id?: string; initial: TaskInput; label: string }) {
+function TaskForm({
+  id,
+  initial,
+  label,
+  onDeleted,
+}: {
+  id?: string;
+  initial: TaskInput;
+  label: string;
+  onDeleted?(): void;
+}) {
   const commit = useRoadmap((s) => s.commit);
   const close = useUi((s) => s.close);
   const [form, setForm] = useState(initial);
@@ -65,8 +84,10 @@ function TaskForm({ id, initial, label }: { id?: string; initial: TaskInput; lab
     try {
       commit(update);
       close();
+      return true;
     } catch (err) {
       setError((err as Error).message);
+      return false;
     }
   };
   const save = () => {
@@ -153,7 +174,13 @@ function TaskForm({ id, initial, label }: { id?: string; initial: TaskInput; lab
           <button
             type="button"
             className={styles.delete}
-            onClick={() => run((d) => deleteTask(d, id))}
+            onClick={(e) => {
+              const dialog = e.currentTarget.closest('dialog')!;
+              if (!run((d) => deleteTask(d, id))) return;
+              useUi.getState().select(null);
+              dialog.close(); // now, not on re-render: a modal dialog won't let focus leave it
+              onDeleted?.();
+            }}
           >
             Delete
           </button>
