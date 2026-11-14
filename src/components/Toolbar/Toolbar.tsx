@@ -1,8 +1,11 @@
 import { useRef, useState } from 'react';
-import { fromDayIndex, toDayIndex } from '../../domain/dates';
+import { fromDayIndex, todayISO, toDayIndex } from '../../domain/dates';
+import { parseRoadmap, serializeRoadmap } from '../../domain/schema';
 import type { Zoom } from '../../domain/scale';
 import { usePrefs, type CalendarMode, type ViewMode } from '../../store/prefsStore';
+import { downloadText, pickTextFile } from '../../storage/fileTransfer';
 import { useRoadmap } from '../../store/roadmapStore';
+import { useStatus } from '../../store/statusStore';
 import { useUi } from '../../store/uiStore';
 import { calendarTitle, stepCursor } from '../../views/calendar/nav';
 import { Popover } from '../Popover';
@@ -45,6 +48,29 @@ const MODES: readonly (readonly [CalendarMode, string])[] = [
   ['month', 'Month'],
   ['year', 'Year'],
 ];
+
+const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? '' : 's'}`;
+
+function exportJson() {
+  downloadText(
+    serializeRoadmap(useRoadmap.getState().history.present),
+    `roadmap-${todayISO()}.json`,
+  );
+}
+
+/** DATA-4: a valid file replaces the roadmap as one undo step; an invalid one changes nothing. */
+async function importJson() {
+  const text = await pickTextFile();
+  if (text === null) return;
+  const { show } = useStatus.getState();
+  try {
+    const doc = parseRoadmap(text);
+    useRoadmap.getState().commit(() => doc);
+    show(`Imported ${plural(doc.tasks.length, 'task')} and ${plural(doc.tags.length, 'tag')}.`);
+  } catch (err) {
+    show(`Import failed: ${(err as Error).message}`);
+  }
+}
 
 export function Toolbar({ onToday }: { onToday(): void }) {
   const view = usePrefs((s) => s.view);
@@ -164,7 +190,13 @@ export function Toolbar({ onToday }: { onToday(): void }) {
       {menu && (
         <Popover anchor={menu} label="Menu" onClose={closeMenu}>
           <div className={styles.menu}>
-            <button type="button" autoFocus onClick={() => pick(() => setManaging(true))}>
+            <button type="button" autoFocus onClick={() => pick(exportJson)}>
+              Export JSON
+            </button>
+            <button type="button" onClick={() => pick(() => void importJson())}>
+              Import JSON
+            </button>
+            <button type="button" onClick={() => pick(() => setManaging(true))}>
               Manage tags
             </button>
           </div>

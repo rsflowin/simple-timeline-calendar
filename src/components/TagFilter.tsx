@@ -50,10 +50,10 @@ export function TagFilter() {
                 <TagChip tag={t} />
               </label>
             ))}
+            {/* not disabled when empty: disabling the focused button would drop focus out of the popover */}
             <button
               type="button"
               className={styles.clear}
-              disabled={count === 0}
               onClick={() => setPrefs({ tagFilter: [] })}
             >
               Clear
