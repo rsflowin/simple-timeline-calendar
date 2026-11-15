@@ -3,8 +3,20 @@ import type { Page } from '@playwright/test';
 /** "Today" for every test, so dates in labels are deterministic. */
 export const TODAY = '2026-11-13';
 
-/** Pins the clock (timers keep running) and opens the app on a clean profile. */
-export async function openApp(page: Page) {
+const EMPTY_ROADMAP = JSON.stringify({
+  format: 'timeline-calendar',
+  version: 1,
+  tasks: [],
+  tags: [],
+});
+
+/** Pins the clock (timers keep running), seeds server state, and opens the app. */
+export async function openApp(page: Page, initialRoadmap = EMPTY_ROADMAP) {
+  const res = await page.request.put('/api/roadmap', {
+    headers: { 'Content-Type': 'application/json' },
+    data: initialRoadmap,
+  });
+  if (!res.ok()) throw new Error(`Failed to seed roadmap: ${res.status()}`);
   await page.clock.setFixedTime(new Date(`${TODAY}T10:00:00`));
   await page.goto('/');
 }

@@ -1,8 +1,8 @@
 # Simple Timeline Calendar
 
 A local-first roadmap planner. Put tasks on a horizontal timeline or a
-calendar, tag them, and drag them around. There is no account and no server:
-your data stays in your browser.
+calendar, tag them, and drag them around. Host it on a local machine or server
+and access it from any browser or device on your network.
 
 ![Timeline in Week zoom](docs/images/timeline-week.png)
 
@@ -34,7 +34,14 @@ npm install
 npm run dev   # http://localhost:5173
 ```
 
-Or run the built app with Docker:
+Or run the built app and API server:
+
+```bash
+npm run build
+npm start                   # http://localhost:8080
+```
+
+Or run it with Docker (persists data in `./data`):
 
 ```bash
 docker compose up --build   # http://localhost:8080
@@ -42,21 +49,23 @@ docker compose up --build   # http://localhost:8080
 
 ## Where is my data?
 
-In your browser's local storage. It is saved a moment after each change and
-when you close the page.
+Tasks and tags are stored on the server as JSON in `data/roadmap.json`
+(configurable with `DATA_DIR`; mounted at `./data:/app/data` in Docker), so any
+browser or machine opening the server URL loads and edits the same roadmap.
+Changes are saved automatically 300 ms after an edit and when leaving the page.
 
-> **Each browser and each address has its own storage.**
-> `http://localhost:5173` and `http://localhost:8080` don't share data, and
-> neither do Chrome and Firefox. Clearing site data deletes your roadmap.
+View preferences (Timeline vs Calendar, zoom level, Pack rows, tag filter) are
+stored per browser in `localStorage`.
+
+If someone on another machine or tab saves changes while your page is open,
+saving warns you to reload so you don't overwrite their edits.
 
 Use **Export JSON** (the `⋯` menu) to back up or move your roadmap, and
-**Import JSON** to load it. Export regularly.
+**Import JSON** to load it.
 
-Edit in one tab at a time: two open tabs overwrite each other's changes, so a
-tab warns you to reload when the roadmap was changed in another one.
-
-If the saved data can't be read, the app keeps a backup copy, starts empty and
-shows a banner with a download link. It never throws your data away silently.
+If the saved data on the server can't be read, the server keeps a backup copy in
+`data/backups/`, starts empty, and shows a banner with a download link. It
+never throws your data away silently.
 
 ## Keyboard shortcuts
 
@@ -79,8 +88,9 @@ On macOS, use `⌘` instead of `Ctrl`.
 | Command             | What it does                            |
 | ------------------- | --------------------------------------- |
 | `npm run dev`       | Dev server at http://localhost:5173     |
-| `npm run build`     | Type-check and build into `dist/`       |
-| `npm run preview`   | Serve `dist/` at http://localhost:4173  |
+| `npm run build`     | Type-check and build client + server    |
+| `npm start`         | Run built app + API at port 8080        |
+| `npm run preview`   | Serve `dist/` + API at port 4173        |
 | `npm test`          | Unit tests (Vitest, watch mode)         |
 | `npm run e2e`       | End-to-end tests (Playwright, Chromium) |
 | `npm run lint`      | ESLint                                  |

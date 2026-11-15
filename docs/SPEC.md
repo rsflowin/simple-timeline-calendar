@@ -252,8 +252,8 @@ Keyboard shortcuts (ignored while typing in a field):
 
 ## 7. Data and storage
 
-- **DATA-1** Every change is saved automatically to browser `localStorage`
-  (debounced 300 ms) and saved immediately when the page is hidden/closed.
+- **DATA-1** Every change is saved automatically to the server (`data/roadmap.json`)
+  (debounced 300 ms) and flushed when the page is hidden/closed.
 - **DATA-2** Roadmap file format:
 
   ```json
@@ -272,16 +272,11 @@ Keyboard shortcuts (ignored while typing in a field):
   error says what's wrong (e.g. `tasks[3].end is before start`). If valid, it
   replaces the current roadmap as one undoable step. Unknown tag ids on tasks
   are dropped.
-- **DATA-5** If the saved data in `localStorage` can't be read, the raw text is
-  kept under a backup key, the app starts empty, and a banner says so and
+- **DATA-5** If the saved data on the server can't be read, the raw text is
+  kept in `data/backups/`, the app starts empty, and a banner says so and
   offers to download the backup. Data is never silently discarded.
 - **DATA-6** View preferences (view, zoom, calendar mode, pack rows, tag
-  filter) are saved separately from the roadmap.
-
-> **Note for users:** browser storage belongs to one browser and one address.
-> `http://localhost:5173` and `http://localhost:8080` are different
-> storages. Use Export / Import to move data between them, and export
-> regularly as a backup.
+  filter) are saved separately per browser in `localStorage`.
 
 ---
 

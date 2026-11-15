@@ -88,9 +88,38 @@ test('Export JSON downloads a file containing the task', async ({ page }) => {
   ]);
 });
 
-test('tasks survive a reload (autosave)', async ({ page }) => {
+test('tasks survive a reload and appear in another browser context', async ({ page, browser }) => {
+  const saved = page.waitForResponse(
+    (r) => r.url().endsWith('/api/roadmap') && r.request().method() === 'PUT' && r.ok(),
+  );
   await createTask(page, 0, 2, 'Design');
   await expect(page.getByRole('button', { name: 'Design, Nov 13 – Nov 15' })).toBeVisible();
+  await saved;
+
   await page.reload();
   await expect(page.getByRole('button', { name: 'Design, Nov 13 – Nov 15' })).toBeVisible();
+
+  // Separate browser context (simulates another browser or machine) loads the same task
+  const other = await browser.newContext();
+  try {
+    const otherPage = await other.newPage();
+    await otherPage.clock.setFixedTime(new Date('2026-11-13T10:00:00'));
+    await otherPage.goto('/');
+    await expect(otherPage.getByRole('button', { name: 'Design, Nov 13 – Nov 15' })).toBeVisible();
+
+    // Editing from the first page while the second is stale triggers a conflict warning on the second
+    const saved2 = page.waitForResponse(
+      (r) => r.url().endsWith('/api/roadmap') && r.request().method() === 'PUT' && r.ok(),
+    );
+    await createTask(page, 3, 4, 'Build');
+    await saved2;
+
+    await otherPage.getByRole('button', { name: '+ New task' }).click();
+    const dialog = otherPage.getByRole('dialog', { name: 'New task' });
+    await dialog.getByLabel('Title').fill('Stale edit');
+    await dialog.getByRole('button', { name: 'Save' }).click();
+    await expect(otherPage.getByRole('alert')).toContainText('changed on another device or tab');
+  } finally {
+    await other.close();
+  }
 });

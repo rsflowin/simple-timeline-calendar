@@ -78,4 +78,17 @@ describe('loadRoadmap', () => {
     expect(result.error).toMatch('not valid JSON');
     expect(result.unreadable).toBe('{broken');
   });
+  it('starts empty and holds back autosave when loading fails (e.g. server unreachable)', async () => {
+    const result = await loadRoadmap({
+      load: async () => {
+        throw new Error('network down');
+      },
+      save: vi.fn(),
+      backup: vi.fn(),
+    });
+    expect(result.doc).toEqual({ tasks: [], tags: [] });
+    expect(result.error).toMatch("Couldn't load saved roadmap (network down)");
+    expect(result.unreadable).toBeNull();
+    expect(result.backedUp).toBe(false);
+  });
 });

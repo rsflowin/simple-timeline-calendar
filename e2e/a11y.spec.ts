@@ -30,10 +30,7 @@ async function expectNoSeriousViolations(page: Page, where: string) {
 }
 
 test.beforeEach(async ({ page }) => {
-  await page.addInitScript((json) => {
-    localStorage.setItem('timeline-calendar:roadmap', json);
-  }, ROADMAP);
-  await openApp(page);
+  await openApp(page, ROADMAP);
 });
 
 test('axe: no serious or critical violations', async ({ page }) => {
