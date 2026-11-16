@@ -1,4 +1,4 @@
-import { isValidISODate } from './dates';
+import { isValidISODate } from './dates.ts';
 import {
   FILE_FORMAT,
   FILE_VERSION,
@@ -8,7 +8,7 @@ import {
   type Tag,
   type TagColor,
   type Task,
-} from './types';
+} from './types.ts';
 
 type Obj = Record<string, unknown>;
 const isObj = (v: unknown): v is Obj => typeof v === 'object' && v !== null && !Array.isArray(v);

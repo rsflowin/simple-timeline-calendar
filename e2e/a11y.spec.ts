@@ -42,6 +42,18 @@ test('axe: no serious or critical violations', async ({ page }) => {
   await expectNoSeriousViolations(page, 'Task dialog');
   await page.keyboard.press('Escape');
 
+  await page.getByRole('button', { name: 'Menu' }).click();
+  await expect(page.getByRole('dialog', { name: 'Menu' })).toBeVisible();
+  await expectNoSeriousViolations(page, 'Menu');
+  await page.getByRole('button', { name: /Tag display/ }).click();
+  await expect(page.getByRole('radiogroup', { name: 'Tag display' })).toBeVisible();
+  await expectNoSeriousViolations(page, 'Menu Tag display');
+  await page.keyboard.press('Escape');
+  await page.getByRole('button', { name: 'Manage tags' }).click();
+  await expect(page.getByRole('dialog', { name: 'Manage tags' })).toBeVisible();
+  await expectNoSeriousViolations(page, 'Manage tags');
+  await page.keyboard.press('Escape');
+
   await page.getByRole('button', { name: 'Calendar' }).click();
   await expect(page.getByRole('button', { name: 'Task blue, Nov 2 – Nov 4' })).toBeVisible();
   await expectNoSeriousViolations(page, 'Calendar Month');

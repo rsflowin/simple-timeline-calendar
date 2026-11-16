@@ -49,4 +49,15 @@ describe('startPointerDrag', () => {
     expect(cb.onMove).not.toHaveBeenCalled();
     expect(cb.onEnd).not.toHaveBeenCalled();
   });
+
+  it('returned cleanup detaches listeners without triggering callbacks', () => {
+    const cb = { onMove: vi.fn(), onEnd: vi.fn(), onCancel: vi.fn() };
+    const stop = startPointerDrag({ button: 0, clientX: 100, clientY: 50 }, cb);
+    stop();
+    fire('pointermove', 150, 50);
+    fire('pointerup', 150, 50);
+    expect(cb.onMove).not.toHaveBeenCalled();
+    expect(cb.onEnd).not.toHaveBeenCalled();
+    expect(cb.onCancel).not.toHaveBeenCalled();
+  });
 });

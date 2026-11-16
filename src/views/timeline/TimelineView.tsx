@@ -47,6 +47,7 @@ export function TimelineView({ ref }: { ref?: Ref<TimelineHandle> }) {
   const doc = useDoc();
   const zoom = usePrefs((s) => s.zoom);
   const pack = usePrefs((s) => s.packRows);
+  const tagRowMode = usePrefs((s) => s.tagRowMode);
   const tagFilter = usePrefs((s) => s.tagFilter);
   const selectedId = useUi((s) => s.selectedId);
   const today = toDayIndex(todayISO());
@@ -82,7 +83,11 @@ export function TimelineView({ ref }: { ref?: Ref<TimelineHandle> }) {
   );
 
   const spans = useMemo(() => visibleSpans(doc, tagFilter), [doc, tagFilter]);
-  const rows = useMemo(() => packRows(spans, pack), [spans, pack]);
+  const tagOrder = useMemo(() => doc.tags.map((t) => t.id), [doc.tags]);
+  const rows = useMemo(
+    () => packRows(spans, pack, { tagOrder, tagOf: (s) => s.task.tagIds[0], mode: tagRowMode }),
+    [spans, pack, tagOrder, tagRowMode],
+  );
   const { top, bottom } = useMemo(() => headerRows(st.zoom, win[0], win[1]), [st.zoom, win]);
   const x = (day: number) => (day - from) * px;
 

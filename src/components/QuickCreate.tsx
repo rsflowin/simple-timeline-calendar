@@ -2,6 +2,7 @@ import { useState, type KeyboardEvent } from 'react';
 import { formatRange, toDayIndex, type ISODate } from '../domain/dates';
 import { addTask } from '../domain/doc';
 import { LIMITS } from '../domain/types';
+import { flushAutosave } from '../storage/autosave';
 import { usePrefs } from '../store/prefsStore';
 import { useRoadmap } from '../store/roadmapStore';
 import { useUi } from '../store/uiStore';
@@ -37,6 +38,7 @@ function QuickCreateForm({
         // the active filter's tags, so the new task doesn't vanish
         const tagIds = usePrefs.getState().tagFilter;
         commit((d) => addTask(d, { title, details: '', start, end, tagIds }));
+        flushAutosave();
       } catch (err) {
         setError((err as Error).message);
         return;

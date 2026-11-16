@@ -3,8 +3,8 @@ import type { IncomingMessage, ServerResponse } from 'node:http';
 import { defineConfig } from 'vitest/config';
 import type { Plugin } from 'vite';
 import react from '@vitejs/plugin-react';
-import { createFileStore } from './server/fileStore';
-import { createApiHandler } from './server/handler';
+import { createFileStore } from './server/fileStore.ts';
+import { createApiHandler } from './server/handler.ts';
 
 function apiMiddlewarePlugin(): Plugin {
   const mount = (middlewares: {

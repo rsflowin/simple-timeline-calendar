@@ -8,13 +8,13 @@ import { useRoadmap } from '../../store/roadmapStore';
 import { useUi } from '../../store/uiStore';
 import { CalendarView } from './CalendarView';
 
-const task = (id: string, start: string, end: string): Task => ({
+const task = (id: string, start: string, end: string, tagIds: string[] = []): Task => ({
   id,
   title: `Task ${id}`,
   details: '',
   start,
   end,
-  tagIds: [],
+  tagIds,
   createdAt: '',
   updatedAt: '',
 });
@@ -28,6 +28,7 @@ describe('CalendarView — month', () => {
       calendarMode: 'month',
       cursor: '2026-11-13',
       packRows: true,
+      tagRowMode: 'dedicated',
       tagFilter: [],
     });
   });
@@ -62,6 +63,29 @@ describe('CalendarView — month', () => {
     expect(tops()).toEqual(['24px', '24px']);
     act(() => usePrefs.setState({ packRows: false }));
     expect(tops()).toEqual(['24px', '46px']);
+  });
+
+  it('groups week lanes by tag in dedicated mode and merges non-overlapping tracks in compact mode', () => {
+    useRoadmap.getState().reset({
+      tags: [
+        { id: 'earlier', name: 'Earlier', color: 'green' },
+        { id: 't1', name: 'Tag 1', color: 'blue' },
+        { id: 't2', name: 'Tag 2', color: 'orange' },
+      ],
+      tasks: [
+        task('prev', '2026-10-27', '2026-10-28', ['earlier']),
+        task('a', '2026-11-02', '2026-11-03', ['t1']),
+        task('b', '2026-11-05', '2026-11-06', ['t2']),
+        task('c', '2026-11-07', '2026-11-08', ['t1']),
+      ],
+    });
+    render(<CalendarView />);
+    const tops = () => [bars('a')[0].style.top, bars('b')[0].style.top, bars('c')[0].style.top];
+    // 'earlier' has no task in Nov 2–8 so it takes no lane; t1 [a, c] on lane 0 (24px), t2 [b] on lane 1 (46px)
+    expect(tops()).toEqual(['24px', '46px', '24px']);
+
+    act(() => usePrefs.setState({ tagRowMode: 'compact' }));
+    expect(tops()).toEqual(['24px', '24px', '24px']);
   });
 });
 
@@ -214,6 +238,7 @@ describe('CalendarView — week', () => {
       calendarMode: 'week',
       cursor: '2026-11-13',
       packRows: true,
+      tagRowMode: 'dedicated',
       tagFilter: [],
     });
   });

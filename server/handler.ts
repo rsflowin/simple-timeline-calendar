@@ -1,7 +1,7 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
-import { parseRoadmap, serializeRoadmap } from '../src/domain/schema';
-import { resolveActor, type Actor } from './auth';
-import { StoreConflictError, type RoadmapStore } from './store';
+import { parseRoadmap, serializeRoadmap } from '../src/domain/schema.ts';
+import { resolveActor, type Actor } from './auth.ts';
+import { StoreConflictError, type RoadmapStore } from './store.ts';
 
 const MAX_BODY_BYTES = 5 * 1024 * 1024;
 

@@ -5,13 +5,14 @@ export interface DragCallbacks {
   onCancel(): void;
 }
 
-/** Tracks a drag from a pointerdown until pointerup, pointercancel or Esc. Main button only. */
+/** Tracks a drag from a pointerdown until pointerup, pointercancel or Esc. Main button only.
+ * Returns a cleanup function that detaches listeners without triggering callbacks. */
 export function startPointerDrag(
   e: Pick<PointerEvent, 'button' | 'clientX' | 'clientY'>,
   cb: DragCallbacks,
   threshold = 4,
-) {
-  if (e.button !== 0) return;
+): () => void {
+  if (e.button !== 0) return () => {};
   const x0 = e.clientX;
   const y0 = e.clientY;
   let moved = false;
@@ -44,4 +45,5 @@ export function startPointerDrag(
   window.addEventListener('pointerup', up);
   window.addEventListener('pointercancel', cancel);
   window.addEventListener('keydown', key);
+  return stop;
 }

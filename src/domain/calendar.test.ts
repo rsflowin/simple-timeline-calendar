@@ -54,6 +54,38 @@ describe('weekLanes', () => {
     ]);
     expect(a.item.id).toBe('a');
   });
+
+  it('groups per week by tag options and omits tags absent from the week', () => {
+    const mon = d('2026-11-09');
+    interface Tagged extends Span {
+      tag?: string;
+    }
+    const t = (id: string, start: string, end: string, tag?: string): Tagged => ({
+      id,
+      start: d(start),
+      end: d(end),
+      tag,
+    });
+    const items: Tagged[] = [
+      t('out', '2026-11-01', '2026-11-08', 'only-earlier'),
+      t('b1', '2026-11-09', '2026-11-10', 'B'),
+      t('a1', '2026-11-12', '2026-11-13', 'A'),
+      t('a2', '2026-11-14', '2026-11-15', 'A'),
+    ];
+    const dedicated = weekLanes(items, mon, true, {
+      tagOrder: ['only-earlier', 'A', 'B'],
+      tagOf: (x) => x.tag,
+      mode: 'dedicated',
+    });
+    expect(dedicated.map((l) => l.map((x) => x.id))).toEqual([['a1', 'a2'], ['b1']]);
+
+    const compact = weekLanes(items, mon, true, {
+      tagOrder: ['only-earlier', 'A', 'B'],
+      tagOf: (x) => x.tag,
+      mode: 'compact',
+    });
+    expect(compact.map((l) => l.map((x) => x.id))).toEqual([['b1', 'a1', 'a2']]);
+  });
 });
 
 describe('hiddenCounts', () => {

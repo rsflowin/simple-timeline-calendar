@@ -28,15 +28,13 @@ const doc: RoadmapDoc = {
   tasks: [task('a', 0, 2, ['red']), task('b', 1, 3), task('c', 5, 6)],
 };
 
-const tops = () =>
-  ['a', 'b', 'c'].map(
-    (id) => screen.getByRole('button', { name: new RegExp(`^Task ${id},`) }).style.top,
-  );
+const tops = (ids = ['a', 'b', 'c']) =>
+  ids.map((id) => screen.getByRole('button', { name: new RegExp(`^Task ${id},`) }).style.top);
 
 describe('TimelineView', () => {
   beforeEach(() => {
     useRoadmap.getState().reset(doc);
-    usePrefs.setState({ zoom: 'day', packRows: true, tagFilter: [] });
+    usePrefs.setState({ zoom: 'day', packRows: true, tagRowMode: 'dedicated', tagFilter: [] });
   });
 
   it('labels each bar with its title and date range', () => {
@@ -46,11 +44,40 @@ describe('TimelineView', () => {
     expect(a).toHaveAttribute('title', a.getAttribute('aria-label'));
   });
 
-  it('packs overlapping tasks into rows, or one row each when packing is off', () => {
+  it('packs tasks by tag group when packRows is on, or one row each when packing is off', () => {
     render(<TimelineView />);
-    expect(tops()).toEqual(['4px', '36px', '4px']);
+    expect(tops()).toEqual(['4px', '36px', '36px']);
     act(() => usePrefs.setState({ packRows: false }));
     expect(tops()).toEqual(['4px', '36px', '68px']);
+  });
+
+  it('separates different tags in dedicated mode and merges non-overlapping tracks in compact mode', () => {
+    useRoadmap.getState().reset({
+      tags: [
+        { id: 'red', name: 'Urgent', color: 'red' },
+        { id: 'blue', name: 'Backend', color: 'blue' },
+      ],
+      tasks: [
+        task('a', 0, 2, ['red']),
+        task('b', 4, 6, ['blue', 'red']),
+        task('c', 8, 10, ['red']),
+        task('d', 12, 14),
+      ],
+    });
+    render(<TimelineView />);
+    // dedicated: red [a, c] on row 0, blue [b] on row 1, untagged [d] on row 2
+    expect(tops(['a', 'b', 'c', 'd'])).toEqual(['4px', '36px', '4px', '68px']);
+
+    // compact: non-overlapping tracks [a, c], [b], [d] all share row 0
+    act(() => usePrefs.setState({ tagRowMode: 'compact' }));
+    expect(tops(['a', 'b', 'c', 'd'])).toEqual(['4px', '4px', '4px', '4px']);
+
+    // dedicated respects reordered tags: blue [b] moves above red [a, c]
+    act(() => {
+      usePrefs.setState({ tagRowMode: 'dedicated' });
+      useRoadmap.getState().commit((d) => ({ ...d, tags: [...d.tags].reverse() }));
+    });
+    expect(tops(['a', 'b', 'c', 'd'])).toEqual(['36px', '4px', '36px', '68px']);
   });
 
   it('colours a bar by its first tag', () => {

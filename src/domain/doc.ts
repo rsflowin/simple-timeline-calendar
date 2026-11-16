@@ -105,3 +105,26 @@ export function deleteTag(doc: RoadmapDoc, id: string): RoadmapDoc {
     ),
   };
 }
+
+/**
+ * Reorders `doc.tags` to match `orderedIds`, keeping any omitted tags in original order at the
+ * end. Returns `doc` itself when the order is unchanged.
+ */
+export function reorderTags(doc: RoadmapDoc, orderedIds: readonly string[]): RoadmapDoc {
+  if (doc.tags.length < 2) return doc;
+  const byId = new Map(doc.tags.map((t) => [t.id, t]));
+  const seen = new Set<string>();
+  const next: Tag[] = [];
+  for (const id of orderedIds) {
+    if (seen.has(id)) continue;
+    const tag = byId.get(id);
+    if (!tag) continue;
+    seen.add(id);
+    next.push(tag);
+  }
+  for (const tag of doc.tags) {
+    if (!seen.has(tag.id)) next.push(tag);
+  }
+  if (next.every((t, i) => t === doc.tags[i])) return doc;
+  return { ...doc, tags: next };
+}

@@ -1,7 +1,8 @@
-import { ConflictError, type StorageAdapter } from './StorageAdapter';
+import { ConflictError, type SaveOptions, type StorageAdapter } from './StorageAdapter';
 
-/** Browser `keepalive` fetches fail above 64 KiB; stay safely below. */
-const KEEPALIVE_MAX_CHARS = 60_000;
+/** Browser `keepalive` fetches fail above 64 KiB (UTF-8 bytes); stay safely below. */
+const KEEPALIVE_MAX_BYTES = 60_000;
+const encoder = new TextEncoder();
 
 /**
  * Persists the roadmap to the app server's `/api/roadmap` endpoints.
@@ -11,6 +12,29 @@ const KEEPALIVE_MAX_CHARS = 60_000;
 export function httpStorageAdapter(baseUrl = ''): StorageAdapter {
   const endpoint = `${baseUrl.replace(/\/$/, '')}/api/roadmap`;
   let revision: string | null = null;
+  let inFlight: Promise<void> | null = null;
+
+  const sendSave = async (json: string, options?: SaveOptions) => {
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+    if (revision !== null) headers['If-Match'] = revision;
+    else headers['If-None-Match'] = '*';
+
+    const res = await fetch(endpoint, {
+      method: 'PUT',
+      credentials: 'include',
+      headers,
+      body: json,
+      keepalive:
+        Boolean(options?.keepalive) && encoder.encode(json).byteLength <= KEEPALIVE_MAX_BYTES,
+    });
+    // Consume the body to EOF so Chromium immediately releases any keepalive byte quota.
+    await res.text().catch(() => {});
+    if (res.status === 409) throw new ConflictError();
+    if (!res.ok) throw new Error(`Failed to save roadmap (${res.status})`);
+    revision = res.headers.get('etag') ?? revision;
+  };
 
   return {
     async load() {
@@ -27,23 +51,19 @@ export function httpStorageAdapter(baseUrl = ''): StorageAdapter {
       return res.text();
     },
 
-    async save(json) {
-      const headers: Record<string, string> = {
-        'Content-Type': 'application/json',
-      };
-      if (revision !== null) headers['If-Match'] = revision;
-      else headers['If-None-Match'] = '*';
-
-      const res = await fetch(endpoint, {
-        method: 'PUT',
-        credentials: 'include',
-        headers,
-        body: json,
-        keepalive: json.length <= KEEPALIVE_MAX_CHARS,
-      });
-      if (res.status === 409) throw new ConflictError();
-      if (!res.ok) throw new Error(`Failed to save roadmap (${res.status})`);
-      revision = res.headers.get('etag') ?? revision;
+    save(json, options) {
+      const prev = inFlight;
+      const run = prev ? prev.then(() => sendSave(json, options)) : sendSave(json, options);
+      const settled = run
+        .then(
+          () => {},
+          () => {},
+        )
+        .finally(() => {
+          if (inFlight === settled) inFlight = null;
+        });
+      inFlight = settled;
+      return run;
     },
 
     async backup(json) {

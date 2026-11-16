@@ -6,7 +6,7 @@ import {
   StoreConflictError,
   type RoadmapStore,
   type StoredRoadmap,
-} from './store';
+} from './store.ts';
 
 function computeRevision(json: string): string {
   const hash = createHash('sha256').update(json, 'utf8').digest('hex').slice(0, 16);
@@ -57,7 +57,8 @@ export function createFileStore(dataDir: string): RoadmapStore {
 
   return {
     async load(roadmapId) {
-      return readCurrent(roadmapPath(roadmapId));
+      const file = roadmapPath(roadmapId);
+      return withLock(file, () => readCurrent(file));
     },
 
     async save(roadmapId, json, expectedRevision) {

@@ -59,4 +59,14 @@ describe('createFileStore', () => {
     const store = createFileStore(dir);
     await expect(store.load('../secret')).rejects.toThrow('Invalid roadmap id');
   });
+
+  it('serializes load behind an in-flight save on the same roadmap', async () => {
+    const store = createFileStore(dir);
+    const first = await store.save('default', '{"v":1}', null);
+    const savePromise = store.save('default', '{"v":2}', first.revision);
+    const loadPromise = store.load('default');
+    const [saved, loaded] = await Promise.all([savePromise, loadPromise]);
+    expect(loaded).toEqual(saved);
+    expect(loaded?.json).toBe('{"v":2}');
+  });
 });

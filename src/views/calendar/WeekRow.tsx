@@ -52,10 +52,20 @@ export function WeekRow({
   onBarPointerDown,
 }: Props) {
   const pack = usePrefs((s) => s.packRows);
+  const tagRowMode = usePrefs((s) => s.tagRowMode);
   const tags = useDoc().tags;
+  const tagOrder = useMemo(() => tags.map((t) => t.id), [tags]);
   const selectedId = useUi((s) => s.selectedId);
   const today = toDayIndex(todayISO());
-  const lanes = useMemo(() => weekLanes(spans, weekStart, pack), [spans, weekStart, pack]);
+  const lanes = useMemo(
+    () =>
+      weekLanes(spans, weekStart, pack, {
+        tagOrder,
+        tagOf: (s) => s.task?.tagIds[0],
+        mode: tagRowMode,
+      }),
+    [spans, weekStart, pack, tagOrder, tagRowMode],
+  );
   const shown = shownLanes(lanes.length, maxLanes);
   const { drawn, hidden: hiddenLanes } = splitLanes(
     lanes,

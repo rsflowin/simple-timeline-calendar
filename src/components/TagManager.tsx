@@ -1,15 +1,18 @@
-import { useEffect, useId, useRef, useState, type KeyboardEvent } from 'react';
-import { deleteTag, updateTag } from '../domain/doc';
+import { useEffect, useId, useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
+import { deleteTag, reorderTags, updateTag } from '../domain/doc';
 import { LIMITS, TAG_COLORS, type Tag, type TagColor } from '../domain/types';
+import { flushAutosave } from '../storage/autosave';
 import { useDoc, useRoadmap } from '../store/roadmapStore';
+import { SortableList } from './SortableList';
 import styles from './TagManager.module.css';
 
 const colorName = (c: TagColor) => c[0].toUpperCase() + c.slice(1);
 
-/** Tag manager dialog (TAG-5): rename, recolour, delete. Every change is one undo step. */
+/** Tag manager dialog (TAG-5): rename, recolour, reorder, delete. Every change is one undo step. */
 export function TagManager({ open, onClose }: { open: boolean; onClose(): void }) {
   const ref = useRef<HTMLDialogElement>(null);
   const tags = useDoc().tags;
+  const commit = useRoadmap((s) => s.commit);
 
   useEffect(() => {
     const dialog = ref.current!;
@@ -17,22 +20,38 @@ export function TagManager({ open, onClose }: { open: boolean; onClose(): void }
     if (!open && dialog.open) dialog.close();
   }, [open]);
 
+  const close = () => {
+    flushAutosave();
+    onClose();
+  };
+
   return (
-    <dialog ref={ref} className={styles.dialog} aria-label="Manage tags" onClose={onClose}>
+    <dialog ref={ref} className={styles.dialog} aria-label="Manage tags" onClose={close}>
       {open && (
         <div className={styles.body}>
           <h2 className={styles.heading}>Manage tags</h2>
+          {tags.length > 1 && (
+            <p className={styles.hint}>
+              Drag to reorder tags; determines row order in Dedicated display mode.
+            </p>
+          )}
           {tags.length === 0 ? (
             <p className={styles.muted}>No tags yet. Add them from a task&apos;s Tags field.</p>
           ) : (
-            <ul className={styles.list}>
-              {tags.map((t) => (
-                <TagRow key={t.id} tag={t} />
-              ))}
-            </ul>
+            <SortableList
+              items={tags}
+              label="Tags"
+              itemLabel={(t) => t.name}
+              className={styles.list}
+              onReorder={(ids) => {
+                commit((d) => reorderTags(d, ids));
+                flushAutosave();
+              }}
+              renderItem={(t, handle) => <TagRow tag={t} handle={handle} />}
+            />
           )}
           <footer className={styles.footer}>
-            <button type="button" onClick={onClose}>
+            <button type="button" onClick={close}>
               Done
             </button>
           </footer>
@@ -42,7 +61,7 @@ export function TagManager({ open, onClose }: { open: boolean; onClose(): void }
   );
 }
 
-function TagRow({ tag }: { tag: Tag }) {
+function TagRow({ tag, handle }: { tag: Tag; handle: ReactNode }) {
   const commit = useRoadmap((s) => s.commit);
   // null = not being edited, so the input follows the doc (e.g. after undo)
   const [draft, setDraft] = useState<string | null>(null);
@@ -70,8 +89,9 @@ function TagRow({ tag }: { tag: Tag }) {
   };
 
   return (
-    <li>
+    <>
       <div className={styles.line}>
+        {handle}
         <input
           aria-label={`Rename ${tag.name}`}
           maxLength={LIMITS.tagName}
@@ -113,6 +133,6 @@ function TagRow({ tag }: { tag: Tag }) {
           {error}
         </p>
       )}
-    </li>
+    </>
   );
 }

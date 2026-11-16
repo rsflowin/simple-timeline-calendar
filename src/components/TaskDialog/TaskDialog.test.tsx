@@ -3,7 +3,8 @@ import { act, fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { todayISO } from '../../domain/dates';
-import { addTask, EMPTY_DOC } from '../../domain/doc';
+import { addTask, createTag, EMPTY_DOC } from '../../domain/doc';
+import { startAutosave } from '../../storage/autosave';
 import { useRoadmap } from '../../store/roadmapStore';
 import { useUi } from '../../store/uiStore';
 import { TaskDialog } from './TaskDialog';
@@ -122,5 +123,29 @@ describe('TaskDialog', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Cancel' }));
     expect(tasks()).toHaveLength(0);
     expect(useUi.getState().editing).toBeNull();
+  });
+
+  it('Save flushes autosave immediately after updating tags', async () => {
+    let doc = createTag(createTag(EMPTY_DOC, 'Part 4-1', 'p1'), 'Part 4-2', 'p2');
+    doc = addTask(doc, { ...existing, tagIds: ['p2'] }, 't1');
+    useRoadmap.getState().reset(doc);
+
+    const saveFn = vi.fn<(json: string) => Promise<void>>(async () => {});
+    const stop = startAutosave(
+      { load: async () => null, save: saveFn, backup: async () => {} },
+      () => {},
+    );
+    try {
+      openWith(() => useUi.getState().openEdit('t1'));
+      await userEvent.click(screen.getByRole('button', { name: 'Remove Part 4-2' }));
+      await userEvent.click(screen.getByRole('combobox'));
+      await userEvent.click(screen.getByRole('option', { name: 'Part 4-1' }));
+      await userEvent.click(save());
+
+      expect(tasks()[0].tagIds).toEqual(['p1']);
+      expect(saveFn).toHaveBeenCalledTimes(1);
+    } finally {
+      stop();
+    }
   });
 });

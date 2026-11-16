@@ -111,10 +111,13 @@ tags.
 
 ### 3.2 Row packing (requirement 2.2)
 
-- **TL-8** With **Pack rows ON** (default), tasks are sorted by start date
-  (longer first on ties) and each task goes into the first row whose last task
-  ends **before** its start day. Two tasks that touch on the same day overlap
-  (end is inclusive), so they go to different rows.
+- **TL-8** With **Pack rows ON** (default), tasks are grouped by their primary
+  tag (`tagIds[0]`, ordered by the document's tag list with untagged tasks
+  last), sorted by start date (longer first on ties), and packed so
+  non-overlapping tasks with the same tag share a line (inclusive end days
+  overlap). In **Dedicated lines per tag** mode (default), each tag keeps its
+  own row(s); in **Tag-first compact packing** mode, compatible whole tracks
+  across tags can share rows when dates do not overlap.
 - **TL-9** With **Pack rows OFF**, every task gets its own row, same order.
 - **TL-10** The toggle is a view preference: it is remembered, it is not part
   of the roadmap data, and it is not undoable.
@@ -147,8 +150,8 @@ Navigation bar: `Today` · `‹` · `›` · title · `Week | Month | Year`.
 - **CAL-2** Tasks are bars that span the days they cover. A task that crosses a
   week boundary is drawn as one piece per week row; rounded ends only where
   the task really starts / ends.
-- **CAL-3** Within each week row, bars use the same packing rule as TL-8
-  (respecting the Pack rows toggle).
+- **CAL-3** Within each week row, bars use the same tag-aware packing rule as
+  TL-8 (per week, respecting the Pack rows toggle and Tag display preference).
 - **CAL-4** If a day cell can't fit all its lanes, the last lane shows
   `+N more`; clicking it opens a popover listing that day's tasks.
 - **CAL-5** Click a day → quick-create a 1-day task. Drag across days →
@@ -212,7 +215,7 @@ an existing task.
   is `Create "<text>"`. Enter on it creates the tag with the next colour in the
   palette rotation and selects it.
 - **TAG-4** Backspace in an empty field removes the last chip.
-- **TAG-5** Tag manager (toolbar menu → Manage tags): rename, change colour,
+- **TAG-5** Tag manager (Preferences → Manage tags): rename, change colour,
   delete. Deleting a tag removes it from all tasks (one undo step).
 
 ---
@@ -227,7 +230,7 @@ an existing task.
 | **UI-4** | `Pack rows` toggle (applies to both views) |
 | **UI-5** | Tag filter: multi-select; shows tasks having **any** selected tag; empty = all tasks |
 | **UI-6** | `+ New task`, Undo, Redo |
-| **UI-7** | Menu: Export JSON, Import JSON, Manage tags |
+| **UI-7** | Preferences (`Tag display` submenu, `Manage tags`); Menu (`Export JSON`, `Import JSON`) |
 
 Keyboard shortcuts (ignored while typing in a field):
 
@@ -275,8 +278,8 @@ Keyboard shortcuts (ignored while typing in a field):
 - **DATA-5** If the saved data on the server can't be read, the raw text is
   kept in `data/backups/`, the app starts empty, and a banner says so and
   offers to download the backup. Data is never silently discarded.
-- **DATA-6** View preferences (view, zoom, calendar mode, pack rows, tag
-  filter) are saved separately per browser in `localStorage`.
+- **DATA-6** View preferences (view, zoom, calendar mode, pack rows, tag display
+  mode, tag filter) are saved separately per browser in `localStorage`.
 
 ---
 
