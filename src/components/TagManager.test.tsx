@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it } from 'vitest';
 import type { RoadmapDoc } from '../domain/types';
@@ -90,5 +90,36 @@ describe('TagManager', () => {
 
     useRoadmap.getState().undo();
     expect(present()).toBe(doc);
+  });
+
+  it('reorders tags via drag and drop as one undo step', () => {
+    setup();
+    const list = screen.getByRole('list', { name: 'Tags' });
+    [...list.querySelectorAll('li')].forEach((li, i) => {
+      li.getBoundingClientRect = () => new DOMRect(0, i * 40, 400, 40);
+    });
+
+    fireEvent.pointerDown(screen.getByRole('button', { name: 'Reorder Urgent' }), {
+      button: 0,
+      clientX: 10,
+      clientY: 20,
+    });
+    act(() => {
+      window.dispatchEvent(new MouseEvent('pointermove', { clientX: 10, clientY: 70 }));
+      window.dispatchEvent(new MouseEvent('pointerup', { clientX: 10, clientY: 70 }));
+    });
+
+    expect(present().tags.map((t) => t.id)).toEqual(['b', 'r']);
+    expect(useRoadmap.getState().history.past).toEqual([doc]);
+
+    useRoadmap.getState().undo();
+    expect(present().tags.map((t) => t.id)).toEqual(['r', 'b']);
+  });
+
+  it('reorders tags with arrow keys on the handle', async () => {
+    const user = setup();
+    screen.getByRole('button', { name: 'Reorder Backend' }).focus();
+    await user.keyboard('{ArrowUp}');
+    expect(present().tags.map((t) => t.id)).toEqual(['b', 'r']);
   });
 });

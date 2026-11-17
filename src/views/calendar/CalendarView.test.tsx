@@ -8,13 +8,13 @@ import { useRoadmap } from '../../store/roadmapStore';
 import { useUi } from '../../store/uiStore';
 import { CalendarView } from './CalendarView';
 
-const task = (id: string, start: string, end: string): Task => ({
+const task = (id: string, start: string, end: string, tagIds: string[] = []): Task => ({
   id,
   title: `Task ${id}`,
   details: '',
   start,
   end,
-  tagIds: [],
+  tagIds,
   createdAt: '',
   updatedAt: '',
 });
@@ -28,6 +28,7 @@ describe('CalendarView — month', () => {
       calendarMode: 'month',
       cursor: '2026-11-13',
       packRows: true,
+      tagRowMode: 'dedicated',
       tagFilter: [],
     });
   });
@@ -63,6 +64,29 @@ describe('CalendarView — month', () => {
     act(() => usePrefs.setState({ packRows: false }));
     expect(tops()).toEqual(['24px', '46px']);
   });
+
+  it('groups week lanes by tag in dedicated mode and merges non-overlapping tracks in compact mode', () => {
+    useRoadmap.getState().reset({
+      tags: [
+        { id: 'earlier', name: 'Earlier', color: 'green' },
+        { id: 't1', name: 'Tag 1', color: 'blue' },
+        { id: 't2', name: 'Tag 2', color: 'orange' },
+      ],
+      tasks: [
+        task('prev', '2026-10-27', '2026-10-28', ['earlier']),
+        task('a', '2026-11-02', '2026-11-03', ['t1']),
+        task('b', '2026-11-05', '2026-11-06', ['t2']),
+        task('c', '2026-11-07', '2026-11-08', ['t1']),
+      ],
+    });
+    render(<CalendarView />);
+    const tops = () => [bars('a')[0].style.top, bars('b')[0].style.top, bars('c')[0].style.top];
+    // 'earlier' has no task in Nov 2–8 so it takes no lane; t1 [a, c] on lane 0 (24px), t2 [b] on lane 1 (46px)
+    expect(tops()).toEqual(['24px', '46px', '24px']);
+
+    act(() => usePrefs.setState({ tagRowMode: 'compact' }));
+    expect(tops()).toEqual(['24px', '24px', '24px']);
+  });
 });
 
 describe('CalendarView — +N more (CAL-4)', () => {
@@ -91,6 +115,8 @@ describe('CalendarView — +N more (CAL-4)', () => {
       cursor: '2026-11-13',
       packRows: true,
       tagFilter: [],
+      clickCreate: true,
+      dragBehavior: 'task',
     });
     useRoadmap.getState().reset({
       tags: [],
@@ -145,6 +171,8 @@ describe('CalendarView — gestures', () => {
       cursor: '2026-11-13',
       packRows: true,
       tagFilter: [],
+      clickCreate: true,
+      dragBehavior: 'task',
     });
   });
   afterEach(() => {
@@ -206,6 +234,66 @@ describe('CalendarView — gestures', () => {
     win('pointerup', '2026-11-05');
     expect(useUi.getState()).toMatchObject({ selectedId: 'a', editing: { mode: 'edit', id: 'a' } });
   });
+
+  it('respects clickCreate=false while keeping drag-create in task mode', () => {
+    usePrefs.setState({ clickCreate: false, dragBehavior: 'task' });
+    const { container } = render(<CalendarView />);
+    const cell = container.querySelector(`[data-day="${toDayIndex('2026-11-12')}"]`)!;
+
+    fireEvent.pointerDown(cell, { button: 0, ...at('2026-11-12') });
+    win('pointerup', '2026-11-12');
+    expect(useUi.getState().quickCreate).toBeNull();
+
+    fireEvent.pointerDown(cell, { button: 0, ...at('2026-11-12') });
+    win('pointermove', '2026-11-17');
+    win('pointerup', '2026-11-17');
+    expect(useUi.getState().quickCreate).toMatchObject({ start: '2026-11-12', end: '2026-11-17' });
+  });
+
+  it('disables drag-create, task drag, and resize handles when dragBehavior=none', () => {
+    usePrefs.setState({ clickCreate: true, dragBehavior: 'none' });
+    const { container } = render(<CalendarView />);
+    const cell = container.querySelector(`[data-day="${toDayIndex('2026-11-12')}"]`)!;
+    const bar = bars('a')[0];
+
+    expect(bar.querySelector('[data-handle]')).toBeNull();
+
+    fireEvent.pointerDown(cell, { button: 0, ...at('2026-11-12') });
+    win('pointermove', '2026-11-16');
+    win('pointerup', '2026-11-16');
+    expect(useUi.getState().quickCreate).toBeNull();
+
+    fireEvent.pointerDown(bar, { button: 0, ...at('2026-11-05') });
+    win('pointermove', '2026-11-15');
+    win('pointerup', '2026-11-15');
+    expect(undoSteps()).toBe(0);
+    expect(useUi.getState().editing).toBeNull();
+
+    fireEvent.pointerDown(bar, { button: 0, ...at('2026-11-05') });
+    win('pointerup', '2026-11-05');
+    expect(useUi.getState()).toMatchObject({ selectedId: 'a', editing: { mode: 'edit', id: 'a' } });
+  });
+
+  it('pans the calendar scroll container when dragBehavior=scroll', () => {
+    usePrefs.setState({ clickCreate: true, dragBehavior: 'scroll' });
+    const { container } = render(<CalendarView />);
+    const cal = screen.getByRole('region', { name: 'Calendar' });
+    const cell = container.querySelector(`[data-day="${toDayIndex('2026-11-12')}"]`)!;
+    cal.scrollTop = 100;
+
+    fireEvent.pointerDown(cell, { button: 0, clientX: 50, clientY: 100 });
+    act(() => {
+      window.dispatchEvent(new MouseEvent('pointermove', { clientX: 50, clientY: 70 }));
+      window.dispatchEvent(new MouseEvent('pointerup', { clientX: 50, clientY: 70 }));
+    });
+    expect(cal.scrollTop).toBe(130);
+    expect(useUi.getState().quickCreate).toBeNull();
+
+    // Clicking empty cell still creates when clickCreate=true
+    fireEvent.pointerDown(cell, { button: 0, ...at('2026-11-12') });
+    win('pointerup', '2026-11-12');
+    expect(useUi.getState().quickCreate).toMatchObject({ start: '2026-11-12', end: '2026-11-12' });
+  });
 });
 
 describe('CalendarView — week', () => {
@@ -214,7 +302,10 @@ describe('CalendarView — week', () => {
       calendarMode: 'week',
       cursor: '2026-11-13',
       packRows: true,
+      tagRowMode: 'dedicated',
       tagFilter: [],
+      clickCreate: true,
+      dragBehavior: 'task',
     });
   });
 
@@ -226,6 +317,24 @@ describe('CalendarView — week', () => {
     expect(screen.getByText('Mon 9')).toBeInTheDocument();
     expect(screen.getByText('Sun 15')).toBeInTheDocument();
     expect(bars('a')[0]).toHaveTextContent(/^Task aFirst line$/);
+  });
+
+  it('scrolls weekBody when dragBehavior=scroll in week view', () => {
+    usePrefs.setState({ dragBehavior: 'scroll', clickCreate: false });
+    useRoadmap.getState().reset({ tags: [], tasks: [task('a', '2026-11-10', '2026-11-11')] });
+    const { container } = render(<CalendarView />);
+    const weekBody = container.querySelector('[class*="weekBody"]') as HTMLElement;
+    const bar = bars('a')[0];
+    expect(weekBody).not.toBe(screen.getByRole('region', { name: 'Calendar' }));
+    weekBody.scrollTop = 40;
+
+    fireEvent.pointerDown(bar, { button: 0, clientX: 50, clientY: 100 });
+    act(() => {
+      window.dispatchEvent(new MouseEvent('pointermove', { clientX: 50, clientY: 75 }));
+      window.dispatchEvent(new MouseEvent('pointerup', { clientX: 50, clientY: 75 }));
+    });
+    expect(weekBody.scrollTop).toBe(65);
+    expect(useUi.getState().editing).toBeNull();
   });
 });
 

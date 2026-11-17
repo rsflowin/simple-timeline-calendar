@@ -6,6 +6,7 @@ import { todayISO } from '../../domain/dates';
 import { serializeRoadmap } from '../../domain/schema';
 import type { RoadmapDoc } from '../../domain/types';
 import { downloadText, pickTextFile } from '../../storage/fileTransfer';
+import { usePrefs } from '../../store/prefsStore';
 import { useRoadmap } from '../../store/roadmapStore';
 import { useStatus } from '../../store/statusStore';
 import { StatusBanner } from '../StatusBanner';
@@ -48,6 +49,12 @@ describe('Toolbar menu', () => {
     vi.clearAllMocks();
     useRoadmap.getState().reset(before);
     useStatus.getState().clear();
+    usePrefs.setState({
+      packRows: true,
+      tagRowMode: 'dedicated',
+      clickCreate: true,
+      dragBehavior: 'task',
+    });
   });
 
   it('Export downloads the roadmap as roadmap-<today>.json', async () => {
@@ -85,5 +92,87 @@ describe('Toolbar menu', () => {
     await Promise.resolve();
     expect(screen.queryByRole('alert')).toBeNull();
     expect(present()).toBe(before);
+  });
+
+  it('Menu lists Manage tags, Tag display, Mouse & drag, Export JSON, Import JSON in order and removes Preferences button', async () => {
+    usePrefs.setState({ packRows: true, tagRowMode: 'dedicated' });
+    const user = userEvent.setup();
+    render(<Toolbar onToday={() => {}} />);
+
+    expect(screen.queryByRole('button', { name: 'Preferences' })).toBeNull();
+    await user.click(screen.getByRole('button', { name: 'Menu' }));
+
+    const menuDialog = screen.getByRole('dialog', { name: 'Menu' });
+    const labels = [...menuDialog.querySelectorAll('button')].map(
+      (b) => b.firstElementChild?.textContent,
+    );
+    expect(labels).toEqual([
+      'Manage tags',
+      'Tag display',
+      'Mouse & drag',
+      'Export JSON',
+      'Import JSON',
+    ]);
+
+    await user.click(screen.getByRole('button', { name: /Tag display/ }));
+    const dedicated = screen.getByRole('radio', { name: /Dedicated lines per tag/ });
+    const compact = screen.getByRole('radio', { name: /Tag-first compact packing/ });
+    expect(dedicated).toBeChecked();
+    expect(compact).not.toBeChecked();
+
+    await user.click(compact);
+    expect(usePrefs.getState().tagRowMode).toBe('compact');
+    expect(compact).toBeChecked();
+
+    await user.keyboard('{Escape}');
+    expect(screen.getByRole('button', { name: /Tag display/ })).toHaveTextContent('Compact');
+
+    await user.click(screen.getByRole('button', { name: 'Manage tags' }));
+    expect(screen.getByRole('dialog', { name: 'Manage tags' })).toBeInTheDocument();
+  });
+
+  it('configures click-to-create and drag behavior in Mouse & drag submenu', async () => {
+    const user = userEvent.setup();
+    render(<Toolbar onToday={() => {}} />);
+
+    await user.click(screen.getByRole('button', { name: 'Menu' }));
+    expect(screen.getByRole('button', { name: /Mouse & drag/ })).toHaveTextContent('Tasks');
+
+    await user.click(screen.getByRole('button', { name: /Mouse & drag/ }));
+    const clickToggle = screen.getByRole('checkbox', { name: /Click empty space to create/ });
+    const dragScroll = screen.getByRole('radio', { name: /Move scroll/ });
+    const dragTask = screen.getByRole('radio', { name: /Move task or create new task/ });
+
+    expect(clickToggle).toBeChecked();
+    expect(screen.getByRole('radio', { name: /Do nothing/ })).not.toBeChecked();
+    expect(dragScroll).not.toBeChecked();
+    expect(dragTask).toBeChecked();
+
+    await user.click(clickToggle);
+    expect(usePrefs.getState().clickCreate).toBe(false);
+    expect(clickToggle).not.toBeChecked();
+
+    await user.click(dragScroll);
+    expect(usePrefs.getState().dragBehavior).toBe('scroll');
+    expect(dragScroll).toBeChecked();
+
+    await user.keyboard('{Escape}');
+    expect(screen.getByRole('button', { name: /Mouse & drag/ })).toHaveTextContent('Scroll');
+
+    await user.click(screen.getByRole('button', { name: /Mouse & drag/ }));
+    await user.click(screen.getByRole('radio', { name: /Do nothing/ }));
+    expect(usePrefs.getState().dragBehavior).toBe('none');
+    await user.keyboard('{Escape}');
+    expect(screen.getByRole('button', { name: /Mouse & drag/ })).toHaveTextContent('Off');
+  });
+
+  it('shows a hint in Tag display submenu when Pack rows is off', async () => {
+    usePrefs.setState({ packRows: false, tagRowMode: 'dedicated' });
+    const user = userEvent.setup();
+    render(<Toolbar onToday={() => {}} />);
+
+    await user.click(screen.getByRole('button', { name: 'Menu' }));
+    await user.click(screen.getByRole('button', { name: /Tag display/ }));
+    expect(screen.getByText('Applies when Pack rows is enabled.')).toBeInTheDocument();
   });
 });

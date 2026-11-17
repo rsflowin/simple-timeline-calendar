@@ -1,5 +1,14 @@
 import { describe, expect, it } from 'vitest';
-import { addTask, createTag, deleteTag, deleteTask, EMPTY_DOC, updateTag, updateTask } from './doc';
+import {
+  addTask,
+  createTag,
+  deleteTag,
+  deleteTask,
+  EMPTY_DOC,
+  reorderTags,
+  updateTag,
+  updateTask,
+} from './doc';
 
 const input = {
   title: '  Design  ',
@@ -77,5 +86,14 @@ describe('tags', () => {
     expect(doc.tags).toHaveLength(0);
     expect(doc.tasks[0].tagIds).toEqual([]);
     expect(deleteTag(doc, 'nope')).toBe(doc);
+  });
+  it('reorders tags, ignores unknown/duplicate ids, appends omitted tags, and no-ops cleanly', () => {
+    const doc = createTag(createTag(createTag(EMPTY_DOC, 'A', 'g1'), 'B', 'g2'), 'C', 'g3');
+    expect(reorderTags(doc, ['g1', 'g2', 'g3'])).toBe(doc);
+    expect(reorderTags(EMPTY_DOC, [])).toBe(EMPTY_DOC);
+
+    const reordered = reorderTags(doc, ['g3', 'missing', 'g1', 'g3']);
+    expect(reordered.tags.map((t) => t.id)).toEqual(['g3', 'g1', 'g2']);
+    expect(doc.tags.map((t) => t.id)).toEqual(['g1', 'g2', 'g3']);
   });
 });

@@ -14,7 +14,7 @@ does.
 | Styling | CSS Modules + CSS custom properties (`src/styles/tokens.css`) | No build plugin; themes later = swap variables |
 | Dialogs | Native `<dialog>` | Focus trap, Esc and backdrop for free; accessible |
 | Tests | Vitest + Testing Library; Playwright for end-to-end gestures | Vitest shares Vite config |
-| Serve | Vite dev server; nginx in Docker for the built app | |
+| Serve | Vite dev server (with `/api` middleware); Node HTTP server (`server/index.ts`) in production & Docker | |
 | Desktop (later) | Tauri 2 | Small installer, uses the OS WebView |
 
 Exact versions are whatever is current stable when the project is scaffolded;
@@ -42,8 +42,9 @@ src/
 │  ├─ uiStore.ts      Transient UI: open dialog, selection, quick-create
 │  └─ statusStore.ts  Banner message + unreadable data to offer for download
 ├─ storage/
-│  ├─ StorageAdapter.ts      interface { load(), save(), backup() }
-│  ├─ localStorageAdapter.ts v1 implementation
+│  ├─ StorageAdapter.ts      interface { load(), save(), backup() } + ConflictError
+│  ├─ httpStorageAdapter.ts  /api/roadmap HTTP implementation with ETag checks
+│  ├─ localStorageAdapter.ts local fallback / test implementation
 │  ├─ boot.ts                loadRoadmap(): safe startup load (DATA-5)
 │  ├─ autosave.ts            store → adapter, debounced
 │  └─ fileTransfer.ts        Export (download) / Import (file picker)
@@ -61,6 +62,13 @@ src/
 ├─ styles/        tokens.css, global.css
 ├─ App.tsx
 └─ main.tsx       Picks the storage adapter, loads, starts autosave
+
+server/           Node 24 HTTP API & static file server (reuses src/domain/schema.ts)
+├─ store.ts       RoadmapStore interface + StoreConflictError
+├─ fileStore.ts   Atomic JSON persistence in DATA_DIR + backups/
+├─ auth.ts        resolveActor() seam for future login/session support
+├─ handler.ts     /api/health, /api/roadmap, /api/roadmap/backup
+└─ index.ts       Standalone HTTP server serving dist/ and /api/*
 ```
 
 **Rule:** `domain/` imports nothing from the other folders. All tricky logic
@@ -123,8 +131,14 @@ interface StorageAdapter {
 }
 ```
 
-v1 uses `localStorage`. The Tauri build swaps in a file-based adapter that
-writes `roadmap.json` to the app data folder. Nothing else changes.
+Web browsers use `httpStorageAdapter` against the server's `/api/roadmap`
+endpoints, which validates payloads with `domain/schema.ts`, persists
+`data/roadmap.json` via `RoadmapStore`, and enforces optimistic concurrency via
+`ETag` / `If-Match` (`ConflictError` on `409`). `resolveActor()` in
+`server/auth.ts` provides a clean seam for adding authentication and per-user
+roadmaps later without changing the frontend storage contract. The Tauri build
+swaps in a file-based adapter that writes `roadmap.json` to the app data
+folder. Nothing else changes.
 Validation (`domain/schema.ts`) runs on everything loaded or imported.
 
 At startup `main.tsx` calls `loadRoadmap(adapter)` (`storage/boot.ts`). It

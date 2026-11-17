@@ -1,9 +1,11 @@
+import path from 'node:path';
 import { defineConfig, devices } from '@playwright/test';
 
 const PORT = 5199;
 
 export default defineConfig({
   testDir: 'e2e',
+  workers: 1,
   forbidOnly: !!process.env.CI,
   retries: 0,
   reporter: process.env.CI ? 'github' : 'list',
@@ -14,5 +16,8 @@ export default defineConfig({
     command: `npx vite ${process.env.CI ? 'preview ' : ''}--port ${PORT} --strictPort`,
     url: `http://localhost:${PORT}`,
     reuseExistingServer: !process.env.CI,
+    env: {
+      DATA_DIR: path.resolve('.playwright-data'),
+    },
   },
 });

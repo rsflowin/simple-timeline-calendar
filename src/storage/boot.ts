@@ -14,7 +14,18 @@ export async function loadRoadmap(adapter: StorageAdapter): Promise<{
   unreadable: string | null;
   backedUp: boolean;
 }> {
-  const raw = await adapter.load();
+  let raw: string | null;
+  try {
+    raw = await adapter.load();
+  } catch (e) {
+    const reason = e instanceof Error ? e.message : String(e);
+    return {
+      doc: EMPTY_DOC,
+      error: `Couldn't load saved roadmap (${reason}). Reload before editing, or choose Start fresh to replace it.`,
+      unreadable: null,
+      backedUp: false,
+    };
+  }
   if (raw === null) return { doc: EMPTY_DOC, error: null, unreadable: null, backedUp: true };
   try {
     return { doc: parseRoadmap(raw), error: null, unreadable: null, backedUp: true };

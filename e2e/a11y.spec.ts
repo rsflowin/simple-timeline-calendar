@@ -30,10 +30,7 @@ async function expectNoSeriousViolations(page: Page, where: string) {
 }
 
 test.beforeEach(async ({ page }) => {
-  await page.addInitScript((json) => {
-    localStorage.setItem('timeline-calendar:roadmap', json);
-  }, ROADMAP);
-  await openApp(page);
+  await openApp(page, ROADMAP);
 });
 
 test('axe: no serious or critical violations', async ({ page }) => {
@@ -43,6 +40,22 @@ test('axe: no serious or critical violations', async ({ page }) => {
   await page.getByRole('button', { name: 'Task blue, Nov 2 – Nov 4' }).press('Enter');
   await expect(page.getByRole('dialog', { name: 'Edit task' })).toBeVisible();
   await expectNoSeriousViolations(page, 'Task dialog');
+  await page.keyboard.press('Escape');
+
+  await page.getByRole('button', { name: 'Menu' }).click();
+  await expect(page.getByRole('dialog', { name: 'Menu' })).toBeVisible();
+  await expectNoSeriousViolations(page, 'Menu');
+  await page.getByRole('button', { name: /Tag display/ }).click();
+  await expect(page.getByRole('radiogroup', { name: 'Tag display' })).toBeVisible();
+  await expectNoSeriousViolations(page, 'Menu Tag display');
+  await page.keyboard.press('Escape');
+  await page.getByRole('button', { name: /Mouse & drag/ }).click();
+  await expect(page.getByRole('radiogroup', { name: 'Drag and drop' })).toBeVisible();
+  await expectNoSeriousViolations(page, 'Menu Mouse & drag');
+  await page.keyboard.press('Escape');
+  await page.getByRole('button', { name: 'Manage tags' }).click();
+  await expect(page.getByRole('dialog', { name: 'Manage tags' })).toBeVisible();
+  await expectNoSeriousViolations(page, 'Manage tags');
   await page.keyboard.press('Escape');
 
   await page.getByRole('button', { name: 'Calendar' }).click();

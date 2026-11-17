@@ -38,3 +38,37 @@ test('Month view: click a day to create a task, then drag it to the next week', 
   await expect(bar).toHaveAccessibleName('Launch, Nov 20');
   await expectInCell(bar, nov20);
 });
+
+test('Month view respects Mouse & drag Do nothing and Click-to-create off settings', async ({
+  page,
+}) => {
+  await openApp(page);
+  await page.getByRole('group', { name: 'View' }).getByRole('button', { name: 'Calendar' }).click();
+
+  const nov13 = page.locator(`[data-day="${dayIndex('2026-11-13')}"]`);
+  const nov20 = page.locator(`[data-day="${dayIndex('2026-11-20')}"]`);
+  await nov13.click();
+  const input = page.getByRole('dialog', { name: 'New task' }).getByLabel('Task title');
+  await input.fill('Launch');
+  await input.press('Enter');
+
+  await page.getByRole('button', { name: 'Menu' }).click();
+  await page.getByRole('button', { name: /Mouse & drag/ }).click();
+  await page.getByRole('checkbox', { name: /Click empty space to create/ }).click();
+  await page.getByRole('radio', { name: /Do nothing/ }).click();
+  await page.keyboard.press('Escape');
+  await page.keyboard.press('Escape');
+
+  await nov20.click();
+  await expect(page.getByRole('dialog', { name: 'New task' })).toHaveCount(0);
+
+  await drag(page, await centre(nov13), await centre(nov20));
+  await expect(page.getByRole('dialog', { name: 'New task' })).toHaveCount(0);
+
+  const bar = page.getByRole('button', { name: 'Launch, Nov 13' });
+  await drag(page, await centre(bar), await centre(nov20));
+  await expect(bar).toHaveAccessibleName('Launch, Nov 13');
+
+  await bar.click();
+  await expect(page.getByRole('dialog', { name: 'Edit task' })).toBeVisible();
+});

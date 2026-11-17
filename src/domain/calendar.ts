@@ -1,5 +1,5 @@
 import { type DayIndex, dayOf, startOfWeek } from './dates';
-import { packRows, type Span } from './packRows';
+import { packRows, type PackOptions, type Span } from './packRows';
 
 /** Mondays of the 4–6 weeks that cover month (0–11) of year. */
 export function monthWeeks(year: number, month: number): DayIndex[] {
@@ -21,6 +21,7 @@ export function weekLanes<T extends Span>(
   items: readonly T[],
   weekStart: DayIndex,
   pack: boolean,
+  options?: PackOptions<T>,
 ): Segment<T>[][] {
   const weekEnd = weekStart + 6;
   const segments = items
@@ -33,7 +34,15 @@ export function weekLanes<T extends Span>(
       startsHere: t.start >= weekStart,
       endsHere: t.end <= weekEnd,
     }));
-  return packRows(segments, pack);
+  return packRows(
+    segments,
+    pack,
+    options && {
+      tagOrder: options.tagOrder,
+      mode: options.mode,
+      tagOf: options.tagOf ? (seg) => options.tagOf!(seg.item) : undefined,
+    },
+  );
 }
 
 /** Per weekday (Mon..Sun), how many segments sit in lanes at index >= shown (for "+N more"). */

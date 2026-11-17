@@ -138,6 +138,25 @@
   cursor: grabbing;
 }
 
+.calendar[data-drag='scroll'] .cells,
+.calendar[data-drag='scroll'] .bar {
+  cursor: grab;
+}
+
+.calendar[data-panning],
+.calendar[data-panning] .cells,
+.calendar[data-panning] .bar {
+  cursor: grabbing;
+}
+
+.calendar[data-drag='none'] .bar {
+  cursor: pointer;
+}
+
+.calendar[data-drag='none'][data-click-create='off'] .cells {
+  touch-action: auto;
+}
+
 .handle {
   position: absolute;
   top: 0;

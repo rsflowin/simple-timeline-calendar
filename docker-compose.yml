@@ -2,5 +2,7 @@ services:
   timeline-calendar:
     build: .
     ports:
-      - "8080:80"
+      - "8080:8080"
+    volumes:
+      - ./data:/app/data
     restart: unless-stopped

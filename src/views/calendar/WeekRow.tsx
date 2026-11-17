@@ -36,6 +36,7 @@ interface Props {
   /** Week view: tall two-line bars showing the first line of details, no date numbers (CAL-8). */
   details?: boolean;
   draggingId: string | null;
+  canDrag?: boolean;
   onBarPointerDown(e: PointerEvent<HTMLButtonElement>, s: TaskSpan): void;
 }
 
@@ -49,13 +50,24 @@ export function WeekRow({
   dimOutside,
   details,
   draggingId,
+  canDrag = true,
   onBarPointerDown,
 }: Props) {
   const pack = usePrefs((s) => s.packRows);
+  const tagRowMode = usePrefs((s) => s.tagRowMode);
   const tags = useDoc().tags;
+  const tagOrder = useMemo(() => tags.map((t) => t.id), [tags]);
   const selectedId = useUi((s) => s.selectedId);
   const today = toDayIndex(todayISO());
-  const lanes = useMemo(() => weekLanes(spans, weekStart, pack), [spans, weekStart, pack]);
+  const lanes = useMemo(
+    () =>
+      weekLanes(spans, weekStart, pack, {
+        tagOrder,
+        tagOf: (s) => s.task?.tagIds[0],
+        mode: tagRowMode,
+      }),
+    [spans, weekStart, pack, tagOrder, tagRowMode],
+  );
   const shown = shownLanes(lanes.length, maxLanes);
   const { drawn, hidden: hiddenLanes } = splitLanes(
     lanes,
@@ -129,10 +141,10 @@ export function WeekRow({
             >
               <span className={styles.barLabel}>{s.task.title}</span>
               {details && <span className={styles.barLabel}>{s.task.details.split('\n')[0]}</span>}
-              {seg.startsHere && (
+              {canDrag && seg.startsHere && (
                 <span className={`${styles.handle} ${styles.handleStart}`} data-handle="start" />
               )}
-              {seg.endsHere && (
+              {canDrag && seg.endsHere && (
                 <span className={`${styles.handle} ${styles.handleEnd}`} data-handle="end" />
               )}
             </button>

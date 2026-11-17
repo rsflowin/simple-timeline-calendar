@@ -2,6 +2,7 @@ import { useEffect, useId, useRef, useState, type FormEvent, type KeyboardEvent 
 import { isValidISODate } from '../../domain/dates';
 import { addTask, deleteTask, updateTask, type TaskInput } from '../../domain/doc';
 import { LIMITS, type RoadmapDoc } from '../../domain/types';
+import { flushAutosave } from '../../storage/autosave';
 import { useDoc, useRoadmap } from '../../store/roadmapStore';
 import { useUi } from '../../store/uiStore';
 import { TagInput } from '../TagInput/TagInput';
@@ -83,6 +84,7 @@ function TaskForm({
   const run = (update: (doc: RoadmapDoc) => RoadmapDoc) => {
     try {
       commit(update);
+      flushAutosave();
       close();
       return true;
     } catch (err) {
@@ -155,10 +157,10 @@ function TaskForm({
           onChange={(tagIds) => set({ tagIds })}
         />
       </div>
-      <label className={styles.field}>
+      <label className={`${styles.field} ${styles.detailsField}`}>
         <span className={styles.label}>Details</span>
         <textarea
-          rows={5}
+          rows={10}
           maxLength={LIMITS.details}
           value={form.details}
           onChange={(e) => set({ details: e.target.value })}
