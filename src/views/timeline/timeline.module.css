@@ -118,6 +118,26 @@
   cursor: grabbing;
 }
 
+.scroller[data-drag='scroll'] .grid,
+.scroller[data-drag='scroll'] .bar {
+  cursor: grab;
+}
+
+.scroller[data-drag='scroll'] .grid,
+.scroller[data-drag='task'] .grid {
+  touch-action: none;
+}
+
+.scroller[data-panning],
+.scroller[data-panning] .grid,
+.scroller[data-panning] .bar {
+  cursor: grabbing;
+}
+
+.scroller[data-drag='none'] .bar {
+  cursor: pointer;
+}
+
 .handle {
   position: absolute;
   top: 0;

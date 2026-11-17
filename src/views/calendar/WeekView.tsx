@@ -23,12 +23,13 @@ export function WeekView({ cursor, g }: { cursor: DayIndex; g: CalendarGestures 
           </div>
         ))}
       </div>
-      <div className={styles.weekBody}>
+      <div className={styles.weekBody} data-scroll-container="">
         <WeekRow
           weekStart={start}
           spans={g.spans}
           details
           draggingId={g.draggingId}
+          canDrag={g.canDragTask}
           onBarPointerDown={g.onBarPointerDown}
         />
       </div>

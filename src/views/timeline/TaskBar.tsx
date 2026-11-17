@@ -11,6 +11,7 @@ interface Props {
   top: number;
   color: { background: string; color: string };
   selected: boolean;
+  canDrag?: boolean;
   /** Shown under the bar while it's dragged (TL-16). */
   tip?: string;
   onPointerDown(e: PointerEvent<HTMLButtonElement>): void;
@@ -18,7 +19,17 @@ interface Props {
   onOpen(): void;
 }
 
-export function TaskBar({ span, left, width, top, color, selected, tip, ...on }: Props) {
+export function TaskBar({
+  span,
+  left,
+  width,
+  top,
+  color,
+  selected,
+  canDrag = true,
+  tip,
+  ...on
+}: Props) {
   const label = `${span.task.title}, ${formatRange(span.start, span.end)}`;
   const cls = [styles.bar, selected && styles.selected, tip && styles.dragging];
   return (
@@ -36,8 +47,12 @@ export function TaskBar({ span, left, width, top, color, selected, tip, ...on }:
       }}
     >
       <span className={styles.barLabel}>{span.task.title}</span>
-      <span className={`${styles.handle} ${styles.handleStart}`} data-handle="start" />
-      <span className={`${styles.handle} ${styles.handleEnd}`} data-handle="end" />
+      {canDrag && (
+        <>
+          <span className={`${styles.handle} ${styles.handleStart}`} data-handle="start" />
+          <span className={`${styles.handle} ${styles.handleEnd}`} data-handle="end" />
+        </>
+      )}
       {tip && <span className={styles.tip}>{tip}</span>}
     </button>
   );

@@ -230,7 +230,7 @@ an existing task.
 | **UI-4** | `Pack rows` toggle (applies to both views) |
 | **UI-5** | Tag filter: multi-select; shows tasks having **any** selected tag; empty = all tasks |
 | **UI-6** | `+ New task`, Undo, Redo |
-| **UI-7** | Preferences (`Tag display` submenu, `Manage tags`); Menu (`Export JSON`, `Import JSON`) |
+| **UI-7** | Menu (`Manage tags`, `Tag display` submenu, `Mouse & drag` submenu, `Export JSON`, `Import JSON`) |
 
 Keyboard shortcuts (ignored while typing in a field):
 
@@ -279,7 +279,8 @@ Keyboard shortcuts (ignored while typing in a field):
   kept in `data/backups/`, the app starts empty, and a banner says so and
   offers to download the backup. Data is never silently discarded.
 - **DATA-6** View preferences (view, zoom, calendar mode, pack rows, tag display
-  mode, tag filter) are saved separately per browser in `localStorage`.
+  mode, tag filter, click-to-create, drag behavior) are saved separately per
+  browser in `localStorage`.
 
 ---
 

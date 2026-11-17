@@ -295,6 +295,53 @@ test('Manage tags drag-and-drop reorders dedicated tag lines on the timeline', a
   expect(await y('Alpha 1')).toBeLessThan(await y('Beta 1'));
 });
 
+test('Mouse & drag settings control click-create and scroll-panning across reloads', async ({
+  page,
+}) => {
+  await createTask(page, 0, 2, 'Design');
+  const bar = page.getByRole('button', { name: 'Design, Nov 13 – Nov 15' });
+  const scroller = page.getByRole('region', { name: 'Timeline' });
+
+  await page.getByRole('button', { name: 'Menu' }).click();
+  await page.getByRole('button', { name: /Mouse & drag/ }).click();
+  await page.getByRole('checkbox', { name: /Click empty space to create/ }).click();
+  await page.getByRole('radio', { name: /Move scroll/ }).click();
+  await page.keyboard.press('Escape');
+  await page.keyboard.press('Escape');
+
+  // Click empty space no longer opens QuickCreate
+  const [x0, y0] = await dayPoint(page, 4);
+  await page.mouse.click(x0, y0);
+  await expect(page.getByRole('dialog', { name: 'New task' })).toHaveCount(0);
+
+  // Dragging empty space pans scrollLeft
+  const beforeScroll = await scroller.evaluate((el) => el.scrollLeft);
+  await drag(page, [x0, y0], [x0 - 80, y0]);
+  const afterScroll = await scroller.evaluate((el) => el.scrollLeft);
+  expect(afterScroll).toBeGreaterThan(beforeScroll + 40);
+
+  // Dragging a bar pans instead of moving the task; clicking it opens Edit task
+  const box = (await bar.boundingBox())!;
+  const barCenter: [number, number] = [box.x + box.width / 2, box.y + box.height / 2];
+  await drag(page, barCenter, [barCenter[0] - 60, barCenter[1]]);
+  await expect(bar).toHaveAccessibleName('Design, Nov 13 – Nov 15');
+  expect(await scroller.evaluate((el) => el.scrollLeft)).toBeGreaterThan(afterScroll + 20);
+
+  await bar.click();
+  await expect(page.getByRole('dialog', { name: 'Edit task' })).toBeVisible();
+  await page.keyboard.press('Escape');
+
+  // Settings persist across reload
+  await page.reload();
+  await page.getByRole('button', { name: 'Menu' }).click();
+  await expect(page.getByRole('button', { name: /Mouse & drag/ })).toHaveText(/Scroll/);
+  await page.getByRole('button', { name: /Mouse & drag/ }).click();
+  await expect(
+    page.getByRole('checkbox', { name: /Click empty space to create/ }),
+  ).not.toBeChecked();
+  await expect(page.getByRole('radio', { name: /Move scroll/ })).toBeChecked();
+});
+
 test('consecutive saves of a 32–60 KB roadmap succeed without keepalive quota exhaustion', async ({
   page,
 }) => {

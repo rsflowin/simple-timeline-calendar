@@ -36,6 +36,7 @@ interface Props {
   /** Week view: tall two-line bars showing the first line of details, no date numbers (CAL-8). */
   details?: boolean;
   draggingId: string | null;
+  canDrag?: boolean;
   onBarPointerDown(e: PointerEvent<HTMLButtonElement>, s: TaskSpan): void;
 }
 
@@ -49,6 +50,7 @@ export function WeekRow({
   dimOutside,
   details,
   draggingId,
+  canDrag = true,
   onBarPointerDown,
 }: Props) {
   const pack = usePrefs((s) => s.packRows);
@@ -139,10 +141,10 @@ export function WeekRow({
             >
               <span className={styles.barLabel}>{s.task.title}</span>
               {details && <span className={styles.barLabel}>{s.task.details.split('\n')[0]}</span>}
-              {seg.startsHere && (
+              {canDrag && seg.startsHere && (
                 <span className={`${styles.handle} ${styles.handleStart}`} data-handle="start" />
               )}
-              {seg.endsHere && (
+              {canDrag && seg.endsHere && (
                 <span className={`${styles.handle} ${styles.handleEnd}`} data-handle="end" />
               )}
             </button>

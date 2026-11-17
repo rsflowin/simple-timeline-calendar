@@ -21,7 +21,7 @@ import { applyDrag, rangeBetween, type DayRange, type DragKind } from '../../dom
 import { packRows } from '../../domain/packRows';
 import { headerRows, PX_PER_DAY, unitRange } from '../../domain/scale';
 import { visibleSpans, type TaskSpan } from '../../domain/spans';
-import { startPointerDrag } from '../../hooks/pointerDrag';
+import { startNonTaskDrag, startPointerDrag } from '../../hooks/pointerDrag';
 import { usePrefs } from '../../store/prefsStore';
 import { useDoc, useRoadmap } from '../../store/roadmapStore';
 import { useStatus } from '../../store/statusStore';
@@ -49,6 +49,8 @@ export function TimelineView({ ref }: { ref?: Ref<TimelineHandle> }) {
   const pack = usePrefs((s) => s.packRows);
   const tagRowMode = usePrefs((s) => s.tagRowMode);
   const tagFilter = usePrefs((s) => s.tagFilter);
+  const clickCreate = usePrefs((s) => s.clickCreate);
+  const dragBehavior = usePrefs((s) => s.dragBehavior);
   const selectedId = useUi((s) => s.selectedId);
   const today = toDayIndex(todayISO());
   const { ref: scroller, st, sync, scrollToDay } = useTimelineRange(zoom, today);
@@ -70,6 +72,8 @@ export function TimelineView({ ref }: { ref?: Ref<TimelineHandle> }) {
   const [draft, setDraft] = useState<(DayRange & { row: number }) | null>(null);
   /** Bar being moved or resized; it keeps its row until release (TL-13, TL-14). */
   const [preview, setPreview] = useState<(DayRange & { id: string }) | null>(null);
+  const [panning, setPanning] = useState(false);
+  const isPanning = panning && dragBehavior === 'scroll';
 
   // When quick-create closes, drop the draft and give focus back to the timeline (NF-4).
   useEffect(
@@ -91,15 +95,46 @@ export function TimelineView({ ref }: { ref?: Ref<TimelineHandle> }) {
   const { top, bottom } = useMemo(() => headerRows(st.zoom, win[0], win[1]), [st.zoom, win]);
   const x = (day: number) => (day - from) * px;
 
+  const openQuickCreateAt = (start: DayIndex, end: DayIndex, row: number) => {
+    setDraft({ start, end, row });
+    const g = grid.current!.getBoundingClientRect();
+    const { from, px } = live.current;
+    // Opened after pointerup: the popover closes on any pointerdown outside it.
+    useUi.getState().openQuickCreate({
+      start: fromDayIndex(start),
+      end: fromDayIndex(end),
+      anchor: new DOMRect(
+        g.left + (start - from) * px,
+        g.top + row * ROW_HEIGHT + BAR_INSET,
+        (end - start + 1) * px,
+        BAR_HEIGHT,
+      ),
+    });
+  };
+
   const onGridPointerDown = (e: PointerEvent<HTMLDivElement>) => {
     // Only empty space: bars handle their own presses, everything else ignores the pointer.
     if (e.button !== 0 || e.target !== e.currentTarget) return;
+    if (!clickCreate && dragBehavior === 'none') return;
     e.preventDefault();
     const rect = () => grid.current!.getBoundingClientRect();
     const at = (clientX: number) =>
       dayAt(live.current.from, live.current.px, clientX - rect().left);
     const d0 = at(e.clientX);
     const row = Math.max(0, Math.floor((e.clientY - rect().top) / ROW_HEIGHT));
+    if (dragBehavior !== 'task') {
+      startNonTaskDrag(e, {
+        scrollEl: scroller.current,
+        pan: dragBehavior === 'scroll',
+        onPanChange: setPanning,
+        onClick: () => {
+          if (!clickCreate) return;
+          const [start, end] = unitRange(st.zoom, d0);
+          openQuickCreateAt(start, end, row);
+        },
+      });
+      return;
+    }
     const draftAt = (clientX: number) => {
       const [start, end] = rangeBetween(d0, at(clientX));
       return { start, end, row };
@@ -107,21 +142,9 @@ export function TimelineView({ ref }: { ref?: Ref<TimelineHandle> }) {
     startPointerDrag(e, {
       onMove: (_dx, _dy, ev) => setDraft(draftAt(ev.clientX)),
       onEnd: (_dx, _dy, ev, moved) => {
+        if (!moved && !clickCreate) return;
         const [start, end] = moved ? rangeBetween(d0, at(ev.clientX)) : unitRange(st.zoom, d0);
-        setDraft({ start, end, row });
-        const g = rect();
-        const { from, px } = live.current;
-        // Opened after pointerup: the popover closes on any pointerdown outside it.
-        useUi.getState().openQuickCreate({
-          start: fromDayIndex(start),
-          end: fromDayIndex(end),
-          anchor: new DOMRect(
-            g.left + (start - from) * px,
-            g.top + row * ROW_HEIGHT + BAR_INSET,
-            (end - start + 1) * px,
-            BAR_HEIGHT,
-          ),
-        });
+        openQuickCreateAt(start, end, row);
       },
       onCancel: () => setDraft(null),
     });
@@ -130,10 +153,22 @@ export function TimelineView({ ref }: { ref?: Ref<TimelineHandle> }) {
   const onBarPointerDown = (e: PointerEvent<HTMLButtonElement>, s: TaskSpan) => {
     if (e.button !== 0) return;
     e.preventDefault();
+    const bar = e.currentTarget;
+    if (dragBehavior !== 'task') {
+      startNonTaskDrag(e, {
+        scrollEl: scroller.current,
+        pan: dragBehavior === 'scroll',
+        onPanChange: setPanning,
+        onClick: () => {
+          bar.focus(); // so the dialog hands focus back to the bar
+          openTask(s.id);
+        },
+      });
+      return;
+    }
     const handle = (e.target as HTMLElement).dataset.handle;
     const kind: DragKind =
       handle === 'start' ? 'resize-start' : handle === 'end' ? 'resize-end' : 'move';
-    const bar = e.currentTarget;
     const dragged = (dx: number) => applyDrag(s, kind, Math.round(dx / live.current.px));
     startPointerDrag(e, {
       onMove: (dx) => setPreview({ id: s.id, ...dragged(dx) }),
@@ -164,6 +199,9 @@ export function TimelineView({ ref }: { ref?: Ref<TimelineHandle> }) {
     <div
       ref={scroller}
       className={styles.scroller}
+      data-drag={dragBehavior}
+      data-click-create={clickCreate ? undefined : 'off'}
+      data-panning={isPanning ? 'true' : undefined}
       onScroll={sync}
       tabIndex={0}
       role="region"
@@ -208,6 +246,7 @@ export function TimelineView({ ref }: { ref?: Ref<TimelineHandle> }) {
                   top={r * ROW_HEIGHT + BAR_INSET}
                   color={taskColor(s.task, doc.tags)}
                   selected={s.id === selectedId}
+                  canDrag={dragBehavior === 'task'}
                   tip={p === preview ? formatRange(p.start, p.end) : undefined}
                   onPointerDown={(e) => onBarPointerDown(e, s)}
                   onOpen={() => openTask(s.id)}

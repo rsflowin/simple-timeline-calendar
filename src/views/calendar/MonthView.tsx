@@ -35,6 +35,7 @@ export function MonthView({ cursor, g }: { cursor: DayIndex; g: CalendarGestures
             weekStart={w}
             spans={g.spans}
             draggingId={g.draggingId}
+            canDrag={g.canDragTask}
             onBarPointerDown={g.onBarPointerDown}
             maxLanes={rowHeight === undefined ? undefined : laneFit(rowHeight)}
             dimOutside={{ year, month }}

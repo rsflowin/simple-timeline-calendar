@@ -49,6 +49,10 @@ test('axe: no serious or critical violations', async ({ page }) => {
   await expect(page.getByRole('radiogroup', { name: 'Tag display' })).toBeVisible();
   await expectNoSeriousViolations(page, 'Menu Tag display');
   await page.keyboard.press('Escape');
+  await page.getByRole('button', { name: /Mouse & drag/ }).click();
+  await expect(page.getByRole('radiogroup', { name: 'Drag and drop' })).toBeVisible();
+  await expectNoSeriousViolations(page, 'Menu Mouse & drag');
+  await page.keyboard.press('Escape');
   await page.getByRole('button', { name: 'Manage tags' }).click();
   await expect(page.getByRole('dialog', { name: 'Manage tags' })).toBeVisible();
   await expectNoSeriousViolations(page, 'Manage tags');

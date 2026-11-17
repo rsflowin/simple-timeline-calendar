@@ -34,7 +34,15 @@ const tops = (ids = ['a', 'b', 'c']) =>
 describe('TimelineView', () => {
   beforeEach(() => {
     useRoadmap.getState().reset(doc);
-    usePrefs.setState({ zoom: 'day', packRows: true, tagRowMode: 'dedicated', tagFilter: [] });
+    useUi.setState({ quickCreate: null, editing: null, selectedId: null });
+    usePrefs.setState({
+      zoom: 'day',
+      packRows: true,
+      tagRowMode: 'dedicated',
+      tagFilter: [],
+      clickCreate: true,
+      dragBehavior: 'task',
+    });
   });
 
   it('labels each bar with its title and date range', () => {
@@ -125,5 +133,95 @@ describe('TimelineView', () => {
     act(() => useUi.getState().openQuickCreate({ start: '2026-01-01', end: '2026-01-01', anchor }));
     fireEvent.pointerDown(screen.getByRole('button', { name: /^Task a,/ }), { button: 0 });
     expect(useUi.getState().quickCreate).toBeNull();
+  });
+
+  it('respects clickCreate=false while keeping drag-create in task mode', () => {
+    usePrefs.setState({ clickCreate: false, dragBehavior: 'task' });
+    render(<TimelineView />);
+    const grid = screen.getByRole('region', { name: 'Timeline' }).querySelector('[class*="grid"]')!;
+
+    fireEvent.pointerDown(grid, { button: 0, clientX: 50, clientY: 10 });
+    act(() => {
+      window.dispatchEvent(new MouseEvent('pointerup', { clientX: 50, clientY: 10 }));
+    });
+    expect(useUi.getState().quickCreate).toBeNull();
+
+    fireEvent.pointerDown(grid, { button: 0, clientX: 50, clientY: 10 });
+    act(() => {
+      window.dispatchEvent(new MouseEvent('pointermove', { clientX: 90, clientY: 10 }));
+      window.dispatchEvent(new MouseEvent('pointerup', { clientX: 90, clientY: 10 }));
+    });
+    expect(useUi.getState().quickCreate).not.toBeNull();
+  });
+
+  it('disables drag-create, task drag, and resize handles when dragBehavior=none', () => {
+    usePrefs.setState({ clickCreate: true, dragBehavior: 'none' });
+    render(<TimelineView />);
+    const scroller = screen.getByRole('region', { name: 'Timeline' });
+    const grid = scroller.querySelector('[class*="grid"]')!;
+    const bar = screen.getByRole('button', { name: /^Task a,/ });
+
+    expect(bar.querySelector('[data-handle]')).toBeNull();
+
+    // Dragging empty space does not open quick-create
+    fireEvent.pointerDown(grid, { button: 0, clientX: 50, clientY: 10 });
+    act(() => {
+      window.dispatchEvent(new MouseEvent('pointermove', { clientX: 120, clientY: 10 }));
+      window.dispatchEvent(new MouseEvent('pointerup', { clientX: 120, clientY: 10 }));
+    });
+    expect(useUi.getState().quickCreate).toBeNull();
+
+    // Clicking empty space still opens quick-create when clickCreate=true
+    fireEvent.pointerDown(grid, { button: 0, clientX: 50, clientY: 10 });
+    act(() => {
+      window.dispatchEvent(new MouseEvent('pointerup', { clientX: 50, clientY: 10 }));
+    });
+    expect(useUi.getState().quickCreate).not.toBeNull();
+
+    // Dragging a bar does not move it or open edit dialog
+    const before = useRoadmap.getState().history.present.tasks[0];
+    fireEvent.pointerDown(bar, { button: 0, clientX: 50, clientY: 10 });
+    act(() => {
+      window.dispatchEvent(new MouseEvent('pointermove', { clientX: 150, clientY: 10 }));
+      window.dispatchEvent(new MouseEvent('pointerup', { clientX: 150, clientY: 10 }));
+    });
+    expect(useRoadmap.getState().history.present.tasks[0]).toEqual(before);
+    expect(useUi.getState().editing).toBeNull();
+
+    // Clicking a bar still opens the Edit task dialog
+    fireEvent.pointerDown(bar, { button: 0, clientX: 50, clientY: 10 });
+    act(() => {
+      window.dispatchEvent(new MouseEvent('pointerup', { clientX: 50, clientY: 10 }));
+    });
+    expect(useUi.getState().editing).toEqual({ mode: 'edit', id: 'a' });
+  });
+
+  it('pans scrollLeft/scrollTop from both empty grid and task bars when dragBehavior=scroll', () => {
+    usePrefs.setState({ clickCreate: false, dragBehavior: 'scroll' });
+    render(<TimelineView />);
+    const scroller = screen.getByRole('region', { name: 'Timeline' });
+    const grid = scroller.querySelector('[class*="grid"]')!;
+    const bar = screen.getByRole('button', { name: /^Task a,/ });
+
+    scroller.scrollLeft = 200;
+    scroller.scrollTop = 100;
+
+    fireEvent.pointerDown(grid, { button: 0, clientX: 100, clientY: 80 });
+    act(() => {
+      window.dispatchEvent(new MouseEvent('pointermove', { clientX: 60, clientY: 60 }));
+      window.dispatchEvent(new MouseEvent('pointerup', { clientX: 60, clientY: 60 }));
+    });
+    expect(scroller.scrollLeft).toBe(240);
+    expect(scroller.scrollTop).toBe(120);
+    expect(useUi.getState().quickCreate).toBeNull();
+
+    fireEvent.pointerDown(bar, { button: 0, clientX: 100, clientY: 80 });
+    act(() => {
+      window.dispatchEvent(new MouseEvent('pointermove', { clientX: 130, clientY: 70 }));
+      window.dispatchEvent(new MouseEvent('pointerup', { clientX: 130, clientY: 70 }));
+    });
+    expect(scroller.scrollLeft).toBe(210);
+    expect(scroller.scrollTop).toBe(130);
+    expect(useUi.getState().editing).toBeNull();
   });
 });

@@ -6,6 +6,7 @@ import type { Zoom } from '../domain/scale';
 
 export type ViewMode = 'timeline' | 'calendar';
 export type CalendarMode = 'week' | 'month' | 'year';
+export type DragBehavior = 'none' | 'scroll' | 'task';
 
 interface Prefs {
   view: ViewMode;
@@ -16,6 +17,8 @@ interface Prefs {
   packRows: boolean;
   tagRowMode: TagRowMode;
   tagFilter: string[];
+  clickCreate: boolean;
+  dragBehavior: DragBehavior;
   set(patch: Partial<Omit<Prefs, 'set'>>): void;
 }
 
@@ -29,17 +32,30 @@ export const usePrefs = create<Prefs>()(
       packRows: true,
       tagRowMode: 'dedicated',
       tagFilter: [],
+      clickCreate: true,
+      dragBehavior: 'task',
       set: (patch) => set(patch),
     }),
     {
       name: 'timeline-calendar:prefs',
-      partialize: ({ view, zoom, calendarMode, packRows, tagRowMode, tagFilter }) => ({
+      partialize: ({
         view,
         zoom,
         calendarMode,
         packRows,
         tagRowMode,
         tagFilter,
+        clickCreate,
+        dragBehavior,
+      }) => ({
+        view,
+        zoom,
+        calendarMode,
+        packRows,
+        tagRowMode,
+        tagFilter,
+        clickCreate,
+        dragBehavior,
       }),
     },
   ),
