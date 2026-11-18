@@ -275,10 +275,11 @@ Keyboard shortcuts (ignored while typing in a field):
   overlapping it are kept) and tags (none = all; otherwise tasks with any
   checked tag, pre-filled from the tag filter). It downloads
   `roadmap-YYYY-MM-DD.json` or `.ics`. Filtered JSON keeps every tag.
-- **DATA-4** Import picks one file, `.json` or `.ics`, and merges it into the
-  roadmap as one undoable step; it never replaces the roadmap. JSON is
+- **DATA-4** Import opens one dialog: mode **Add** (default) or **Replace**,
+  then one file, `.json` or `.ics`. Either mode is one undoable step. JSON is
   validated first; if invalid, nothing changes and the error says what's wrong
-  (e.g. `tasks[3].end is before start`). Existing tags are never changed: an
+  (e.g. `tasks[3].end is before start`). **Replace** swaps the whole roadmap for
+  the file's tasks and tags. **Add** merges: existing tags are never changed: an
   incoming tag (JSON tag or `.ics` CATEGORIES) maps onto the existing tag with
   the same id, else the same name, else is added. A task (or `.ics` event UID)
   whose id matches an existing task updates it; others are added. Unknown tag

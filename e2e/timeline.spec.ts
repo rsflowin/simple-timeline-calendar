@@ -155,9 +155,13 @@ test('Import JSON saves a large multi-byte roadmap (> 64 KiB UTF-8) and survives
     (r) => r.url().endsWith('/api/roadmap') && r.request().method() === 'PUT' && r.ok(),
   );
   await page.getByRole('button', { name: 'Menu' }).click();
+  await page.getByRole('button', { name: 'Import…' }).click();
   const [chooser] = await Promise.all([
     page.waitForEvent('filechooser'),
-    page.getByRole('button', { name: 'Import…' }).click(),
+    page
+      .getByRole('dialog', { name: 'Import' })
+      .getByRole('button', { name: 'Choose file…' })
+      .click(),
   ]);
   await chooser.setFiles({
     name: 'large-roadmap.json',

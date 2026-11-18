@@ -62,9 +62,10 @@ saving warns you to reload so you don't overwrite their edits.
 
 Use **Export…** (the `⋯` menu) to download your roadmap as JSON (backup) or
 `.ics` (for Google Calendar: Settings → Import & export), optionally limited to
-a date range and tags. **Import…** takes either format and merges it into the
-roadmap: new tasks are added, a task with a known id (or `.ics` UID) is updated,
-and existing tags are kept as they are.
+a date range and tags. **Import…** takes either format. **Add** (default) merges
+it into the roadmap: new tasks are added, a task with a known id (or `.ics` UID)
+is updated, and existing tags are kept as they are. **Replace** swaps the whole
+roadmap for the file's contents. Either can be undone.
 
 If the saved data on the server can't be read, the server keeps a backup copy in
 `data/backups/`, starts empty, and shows a banner with a download link. It

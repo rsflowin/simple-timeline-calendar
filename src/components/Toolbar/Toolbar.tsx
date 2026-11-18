@@ -1,9 +1,6 @@
 import { useId, useRef, useState, type ReactNode } from 'react';
 import { fromDayIndex, toDayIndex } from '../../domain/dates';
-import { mergeRoadmap } from '../../domain/doc';
-import { importIcs } from '../../domain/ics';
 import type { TagRowMode } from '../../domain/packRows';
-import { parseRoadmap } from '../../domain/schema';
 import type { Zoom } from '../../domain/scale';
 import {
   usePrefs,
@@ -11,13 +8,11 @@ import {
   type DragBehavior,
   type ViewMode,
 } from '../../store/prefsStore';
-import { flushAutosave } from '../../storage/autosave';
-import { pickTextFile } from '../../storage/fileTransfer';
 import { useRoadmap } from '../../store/roadmapStore';
-import { useStatus } from '../../store/statusStore';
 import { useUi } from '../../store/uiStore';
 import { calendarTitle, stepCursor } from '../../views/calendar/nav';
 import { ExportDialog } from '../ExportDialog';
+import { ImportDialog } from '../ImportDialog';
 import { Popover } from '../Popover';
 import { TagFilter } from '../TagFilter';
 import { TagManager } from '../TagManager';
@@ -144,30 +139,6 @@ function Submenu({
   );
 }
 
-const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? '' : 's'}`;
-
-/**
- * DATA-4: one picker for both formats. Either is merged into the roadmap (existing tasks and tags
- * are kept) as one undo step; an invalid file changes nothing.
- */
-async function importFile() {
-  const text = await pickTextFile('.json,.ics,application/json,text/calendar');
-  if (text === null) return;
-  const { show } = useStatus.getState();
-  const { commit, history } = useRoadmap.getState();
-  try {
-    const r = /^\s*BEGIN:VCALENDAR/i.test(text)
-      ? importIcs(history.present, text)
-      : mergeRoadmap(history.present, parseRoadmap(text));
-    if (r.added + r.updated) commit(() => r.doc);
-    flushAutosave();
-    const skipped = r.skipped ? `; skipped ${plural(r.skipped, 'invalid item')}` : '';
-    show(`Imported: ${r.added} added, ${r.updated} updated${skipped}.`);
-  } catch (err) {
-    show(`Import failed: ${(err as Error).message}`);
-  }
-}
-
 export function Toolbar({ onToday }: { onToday(): void }) {
   const view = usePrefs((s) => s.view);
   const zoom = usePrefs((s) => s.zoom);
@@ -188,6 +159,7 @@ export function Toolbar({ onToday }: { onToday(): void }) {
   const [submenu, setSubmenu] = useState<'root' | 'tag-display' | 'mouse-drag'>('root');
   const [managing, setManaging] = useState(false);
   const [exporting, setExporting] = useState(false);
+  const [importing, setImporting] = useState(false);
   const menuButton = useRef<HTMLButtonElement>(null);
   const dragGroupId = useId();
 
@@ -351,7 +323,7 @@ export function Toolbar({ onToday }: { onToday(): void }) {
                 <button
                   type="button"
                   className={styles.menuItem}
-                  onClick={() => pick(() => void importFile())}
+                  onClick={() => pick(() => setImporting(true))}
                 >
                   <span>Import…</span>
                   <span className={styles.meta}>JSON, .ics</span>
@@ -425,6 +397,7 @@ export function Toolbar({ onToday }: { onToday(): void }) {
       )}
       <TagManager open={managing} onClose={() => setManaging(false)} />
       <ExportDialog open={exporting} onClose={() => setExporting(false)} />
+      <ImportDialog open={importing} onClose={() => setImporting(false)} />
     </header>
   );
 }

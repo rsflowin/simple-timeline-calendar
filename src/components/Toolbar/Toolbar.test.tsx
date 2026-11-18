@@ -45,6 +45,14 @@ async function chooseFromMenu(item: RegExp) {
   return user;
 }
 
+async function importFromMenu(mode: 'Add' | 'Replace' = 'Add') {
+  const user = await chooseFromMenu(/^Import…/);
+  const dialog = screen.getByRole('dialog', { name: 'Import' });
+  await user.click(within(dialog).getByRole('radio', { name: new RegExp(`^${mode}`) }));
+  await user.click(within(dialog).getByRole('button', { name: 'Choose file…' }));
+  return dialog;
+}
+
 const ics = [
   'BEGIN:VCALENDAR',
   'BEGIN:VEVENT',
@@ -84,7 +92,7 @@ describe('Toolbar menu', () => {
 
   it('Import of an .ics merges events into the roadmap as one undo step', async () => {
     vi.mocked(pickTextFile).mockResolvedValue(ics);
-    await chooseFromMenu(/^Import…/);
+    await importFromMenu();
     expect(await screen.findByRole('alert')).toHaveTextContent('Imported: 1 added, 0 updated.');
     expect(present().tasks).toEqual([
       expect.objectContaining({ id: 't', title: 'Launch', start: '2026-01-05', end: '2026-01-09' }),
@@ -103,7 +111,7 @@ describe('Toolbar menu', () => {
     };
     useRoadmap.getState().reset(existing);
     vi.mocked(pickTextFile).mockResolvedValue(serializeRoadmap(imported));
-    await chooseFromMenu(/^Import…/);
+    await importFromMenu();
     expect(await screen.findByRole('alert')).toHaveTextContent('Imported: 1 added, 0 updated.');
     expect(present().tasks[0]).toBe(existing.tasks[0]);
     expect(present().tags).toEqual([...existing.tags, ...imported.tags]);
@@ -117,18 +125,49 @@ describe('Toolbar menu', () => {
     const bad = JSON.parse(serializeRoadmap(imported));
     bad.tasks[0].end = '2026-01-01';
     vi.mocked(pickTextFile).mockResolvedValue(JSON.stringify(bad));
-    await chooseFromMenu(/^Import…/);
+    await importFromMenu();
     expect(await screen.findByRole('alert')).toHaveTextContent(/^Import failed: tasks\[0\]\.end/);
     expect(present()).toBe(before);
     expect(useRoadmap.getState().history.past).toEqual([]);
   });
 
-  it('a cancelled file picker does nothing', async () => {
+  it('a cancelled file picker does nothing and keeps the dialog open', async () => {
     vi.mocked(pickTextFile).mockResolvedValue(null);
-    await chooseFromMenu(/^Import…/);
+    const dialog = await importFromMenu();
     await Promise.resolve();
     expect(screen.queryByRole('alert')).toBeNull();
     expect(present()).toBe(before);
+    expect(dialog).toHaveAttribute('open');
+  });
+
+  it('Replace swaps the whole roadmap for a JSON file as one undo step', async () => {
+    const existing: RoadmapDoc = {
+      tags: [{ id: 'old', name: 'Old', color: 'red' }],
+      tasks: [{ ...imported.tasks[0], id: 'gone', tagIds: ['old'] }],
+    };
+    useRoadmap.getState().reset(existing);
+    vi.mocked(pickTextFile).mockResolvedValue(serializeRoadmap(imported));
+    const dialog = await importFromMenu('Replace');
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Replaced the roadmap with 1 task and 1 tag.',
+    );
+    expect(present()).toEqual(imported);
+    expect(dialog).not.toHaveAttribute('open');
+
+    useRoadmap.getState().undo();
+    expect(present()).toBe(existing);
+  });
+
+  it('Replace with an .ics keeps only its events', async () => {
+    useRoadmap.getState().reset({
+      tags: [{ id: 'old', name: 'Old', color: 'red' }],
+      tasks: [{ ...imported.tasks[0], id: 'gone', tagIds: ['old'] }],
+    });
+    vi.mocked(pickTextFile).mockResolvedValue(ics);
+    await importFromMenu('Replace');
+    expect(await screen.findByRole('alert')).toHaveTextContent('1 task and 1 tag');
+    expect(present().tasks.map((t) => t.id)).toEqual(['t']);
+    expect(present().tags.map((t) => t.name)).toEqual(['Growth']);
   });
 
   it('Menu lists Manage tags, Tag display, Mouse & drag, Export…, Import… in order and removes Preferences button', async () => {
