@@ -11,15 +11,16 @@ npm run dev        # http://localhost:5173
 
 ## Commands
 
-| Command             | What it does                    |
-| ------------------- | ------------------------------- |
-| `npm test`          | Unit tests (Vitest, watch mode) |
-| `npm test -- --run` | Unit tests once                 |
-| `npm run e2e`       | End-to-end tests (Playwright)   |
-| `npm run lint`      | ESLint                          |
-| `npm run typecheck` | TypeScript                      |
-| `npm run format`    | Prettier                        |
-| `npm run build`     | Production build into `dist/`   |
+| Command             | What it does                                   |
+| ------------------- | ---------------------------------------------- |
+| `npm test`          | Unit tests (Vitest, watch mode)                |
+| `npm test -- --run` | Unit tests once (`src/` and `server/`)         |
+| `npm run e2e`       | End-to-end tests (Playwright)                  |
+| `npm run lint`      | ESLint                                         |
+| `npm run typecheck` | TypeScript                                     |
+| `npm run format`    | Prettier                                       |
+| `npm run build`     | Production build into `dist/` + `dist-server/` |
+| `npm start`         | Run built app + API at http://localhost:8080   |
 
 ## Folder rules
 

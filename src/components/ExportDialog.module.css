@@ -1,0 +1,82 @@
+.dialog {
+  width: min(440px, calc(100vw - 32px));
+  padding: 0;
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  background: var(--color-surface);
+  color: var(--color-text);
+  box-shadow: 0 12px 40px var(--color-shadow);
+}
+
+.dialog::backdrop {
+  background: var(--color-backdrop);
+}
+
+.body {
+  display: grid;
+  gap: 12px;
+  padding: 20px;
+}
+
+.heading {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.hint {
+  color: var(--color-text-muted);
+  font-size: 12px;
+}
+
+.formats {
+  display: grid;
+  gap: 4px;
+}
+
+.range {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.range label {
+  display: grid;
+  gap: 4px;
+  flex: 1;
+  min-width: 140px;
+}
+
+.tags {
+  display: grid;
+  gap: 4px;
+  max-height: 40vh;
+  overflow-y: auto;
+  margin: 0;
+  padding: 8px;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+}
+
+.option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 2px 4px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.option:hover {
+  background: var(--color-hover);
+}
+
+.error {
+  color: var(--color-danger);
+  font-size: 13px;
+}
+
+.footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}

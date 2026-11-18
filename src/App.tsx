@@ -3,6 +3,7 @@ import { Toolbar } from './components/Toolbar/Toolbar';
 import { QuickCreate } from './components/QuickCreate';
 import { StatusBanner } from './components/StatusBanner';
 import { TaskDialog } from './components/TaskDialog/TaskDialog';
+import { TodayPanel } from './components/TodayPanel';
 import { todayISO, toDayIndex } from './domain/dates';
 import { deleteTask } from './domain/doc';
 import { useShortcuts } from './hooks/useShortcuts';
@@ -39,6 +40,7 @@ const goToToday = () =>
 const SHORTCUTS: Record<string, () => void> = {
   n: () => ui.openNew(),
   t: goToToday,
+  a: () => setPrefs({ agendaOpen: !usePrefs.getState().agendaOpen }),
   delete: deleteSelected,
   backspace: deleteSelected,
   'mod+z': roadmap.undo,
@@ -55,14 +57,18 @@ const SHORTCUTS: Record<string, () => void> = {
 
 export default function App() {
   const view = usePrefs((s) => s.view);
+  const agendaOpen = usePrefs((s) => s.agendaOpen);
   useShortcuts(SHORTCUTS);
   return (
     <div className={styles.app}>
       <Toolbar onToday={goToToday} />
       <StatusBanner />
-      <main className={styles.body}>
-        {view === 'timeline' ? <TimelineView ref={timeline} /> : <CalendarView ref={calendar} />}
-      </main>
+      <div className={styles.row}>
+        <main className={styles.body}>
+          {view === 'timeline' ? <TimelineView ref={timeline} /> : <CalendarView ref={calendar} />}
+        </main>
+        {agendaOpen && <TodayPanel />}
+      </div>
       <TaskDialog onDeleted={focusView} />
       <QuickCreate />
     </div>

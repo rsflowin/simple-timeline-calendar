@@ -35,6 +35,7 @@ src/
 │  ├─ calendar.ts     Month grid, per-week bar segments, tasks-per-day counts
 │  ├─ drag.ts         Pure result of a move / resize / create gesture
 │  ├─ history.ts      Undo / redo stack
+│  ├─ ics.ts          Export tasks to iCalendar (.ics) and import .ics events
 │  └─ schema.ts       Validate + serialise a roadmap file (trust boundary)
 ├─ store/
 │  ├─ roadmapStore.ts Tasks + tags + history; every mutation is one undo step
@@ -49,7 +50,8 @@ src/
 │  ├─ autosave.ts            store → adapter, debounced
 │  └─ fileTransfer.ts        Export (download) / Import (file picker)
 ├─ components/    Shared UI: Toolbar (incl. calendar nav), TaskDialog,
-│                 QuickCreate, TagInput, TagChip, TagFilter, TagManager,
+│                 QuickCreate, TodayPanel, ExportDialog, ImportDialog,
+│                 TagInput, TagChip, TagFilter, TagManager, SortableList,
 │                 Popover, StatusBanner
 ├─ views/
 │  ├─ openTask.ts, taskColor.ts   Helpers shared by both views
@@ -63,7 +65,7 @@ src/
 ├─ App.tsx
 └─ main.tsx       Picks the storage adapter, loads, starts autosave
 
-server/           Node 24 HTTP API & static file server (reuses src/domain/schema.ts)
+server/           Node HTTP API & static file server (reuses src/domain/schema.ts)
 ├─ store.ts       RoadmapStore interface + StoreConflictError
 ├─ fileStore.ts   Atomic JSON persistence in DATA_DIR + backups/
 ├─ auth.ts        resolveActor() seam for future login/session support
@@ -101,9 +103,13 @@ have none of that. Only `todayISO()` reads the local clock.
 
 ### 3.3 One packing function for both views
 
-`packRows(spans, pack)` is a greedy first-fit over spans sorted by start. The
-timeline feeds it whole tasks; the calendar feeds it each task's piece clipped
-to one week row. Same rule, same toggle, one test file.
+`packRows(spans, pack, tagOrder, tagRowMode)` groups spans by primary tag
+(`tagIds[0]` in document tag order, untagged last), sorts by start date (longer
+first on ties), and packs non-overlapping tasks onto shared rows in either
+`dedicated` (each tag keeps its own row(s)) or `compact` (compatible tracks
+across tags can share rows) mode. The timeline feeds it whole tasks; the
+calendar feeds it each task's piece clipped to one week row. Same rule, same
+toggles, one test file.
 
 ### 3.4 No timeline/calendar library
 
@@ -168,7 +174,8 @@ pointer / keyboard
 | Mode | Command | URL |
 |---|---|---|
 | Dev | `npm run dev` | http://localhost:5173 |
-| Production build, local | `npm run build && npm run preview` | http://localhost:4173 |
+| Production build + server | `npm run build && npm start` | http://localhost:8080 |
+| Production build, preview | `npm run build && npm run preview` | http://localhost:4173 |
 | Docker | `docker compose up --build` | http://localhost:8080 |
 | Unit tests | `npm test` (watch) / `npm test -- --run` | — |
 | End-to-end tests | `npm run e2e` (starts Vite on port 5199) | — |
@@ -183,5 +190,5 @@ pointer / keyboard
 3. Add `@tauri-apps/plugin-fs`; write `storage/tauriFileAdapter.ts`
    implementing `StorageAdapter`.
 4. In `main.tsx`, pick the adapter: Tauri if `'__TAURI_INTERNALS__' in window`,
-   otherwise localStorage.
+   otherwise `httpStorageAdapter()`.
 5. On first desktop launch, offer to import from a JSON export.

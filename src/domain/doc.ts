@@ -53,6 +53,41 @@ export function updateTask(
   return { ...doc, tasks: doc.tasks.with(i, { ...next, updatedAt: now }) };
 }
 
+/**
+ * Import merge: existing tags are never changed. An incoming tag maps onto the existing tag with
+ * the same id, else the same name, else is added. Incoming tasks whose id exists update that
+ * task; the rest are added. Tasks failing validation are counted in `skipped`.
+ */
+export function mergeRoadmap(
+  doc: RoadmapDoc,
+  incoming: RoadmapDoc,
+): { doc: RoadmapDoc; added: number; updated: number; skipped: number } {
+  const tagIds = new Map<string, string>();
+  for (const tag of incoming.tags) {
+    const same = doc.tags.find((t) => t.id === tag.id) ?? findTagByName(doc, tag.name);
+    if (!same) doc = { ...doc, tags: [...doc.tags, tag] };
+    tagIds.set(tag.id, same?.id ?? tag.id);
+  }
+  let added = 0;
+  let updated = 0;
+  let skipped = 0;
+  for (const { id, title, details, start, end, tagIds: ids } of incoming.tasks) {
+    const input = { title, details, start, end, tagIds: ids.flatMap((g) => tagIds.get(g) ?? []) };
+    try {
+      if (doc.tasks.some((t) => t.id === id)) {
+        doc = updateTask(doc, id, input);
+        updated++;
+      } else {
+        doc = addTask(doc, input, id);
+        added++;
+      }
+    } catch {
+      skipped++;
+    }
+  }
+  return { doc, added, updated, skipped };
+}
+
 export function deleteTask(doc: RoadmapDoc, id: string): RoadmapDoc {
   if (!doc.tasks.some((t) => t.id === id)) return doc;
   return { ...doc, tasks: doc.tasks.filter((t) => t.id !== id) };

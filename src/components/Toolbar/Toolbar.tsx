@@ -1,7 +1,6 @@
 import { useId, useRef, useState, type ReactNode } from 'react';
-import { fromDayIndex, todayISO, toDayIndex } from '../../domain/dates';
+import { fromDayIndex, toDayIndex } from '../../domain/dates';
 import type { TagRowMode } from '../../domain/packRows';
-import { parseRoadmap, serializeRoadmap } from '../../domain/schema';
 import type { Zoom } from '../../domain/scale';
 import {
   usePrefs,
@@ -9,12 +8,11 @@ import {
   type DragBehavior,
   type ViewMode,
 } from '../../store/prefsStore';
-import { flushAutosave } from '../../storage/autosave';
-import { downloadText, pickTextFile } from '../../storage/fileTransfer';
 import { useRoadmap } from '../../store/roadmapStore';
-import { useStatus } from '../../store/statusStore';
 import { useUi } from '../../store/uiStore';
 import { calendarTitle, stepCursor } from '../../views/calendar/nav';
+import { ExportDialog } from '../ExportDialog';
+import { ImportDialog } from '../ImportDialog';
 import { Popover } from '../Popover';
 import { TagFilter } from '../TagFilter';
 import { TagManager } from '../TagManager';
@@ -141,30 +139,6 @@ function Submenu({
   );
 }
 
-const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? '' : 's'}`;
-
-function exportJson() {
-  downloadText(
-    serializeRoadmap(useRoadmap.getState().history.present),
-    `roadmap-${todayISO()}.json`,
-  );
-}
-
-/** DATA-4: a valid file replaces the roadmap as one undo step; an invalid one changes nothing. */
-async function importJson() {
-  const text = await pickTextFile();
-  if (text === null) return;
-  const { show } = useStatus.getState();
-  try {
-    const doc = parseRoadmap(text);
-    useRoadmap.getState().commit(() => doc);
-    flushAutosave();
-    show(`Imported ${plural(doc.tasks.length, 'task')} and ${plural(doc.tags.length, 'tag')}.`);
-  } catch (err) {
-    show(`Import failed: ${(err as Error).message}`);
-  }
-}
-
 export function Toolbar({ onToday }: { onToday(): void }) {
   const view = usePrefs((s) => s.view);
   const zoom = usePrefs((s) => s.zoom);
@@ -174,6 +148,7 @@ export function Toolbar({ onToday }: { onToday(): void }) {
   const tagRowMode = usePrefs((s) => s.tagRowMode);
   const clickCreate = usePrefs((s) => s.clickCreate);
   const dragBehavior = usePrefs((s) => s.dragBehavior);
+  const agendaOpen = usePrefs((s) => s.agendaOpen);
   const setPrefs = usePrefs((s) => s.set);
   const canUndo = useRoadmap((s) => s.history.past.length > 0);
   const canRedo = useRoadmap((s) => s.history.future.length > 0);
@@ -183,6 +158,8 @@ export function Toolbar({ onToday }: { onToday(): void }) {
   const [menu, setMenu] = useState<DOMRect | null>(null);
   const [submenu, setSubmenu] = useState<'root' | 'tag-display' | 'mouse-drag'>('root');
   const [managing, setManaging] = useState(false);
+  const [exporting, setExporting] = useState(false);
+  const [importing, setImporting] = useState(false);
   const menuButton = useRef<HTMLButtonElement>(null);
   const dragGroupId = useId();
 
@@ -265,6 +242,15 @@ export function Toolbar({ onToday }: { onToday(): void }) {
       >
         Pack rows
       </button>
+      <button
+        type="button"
+        className={styles.toggle}
+        aria-pressed={agendaOpen}
+        title="Today's tasks (A)"
+        onClick={() => setPrefs({ agendaOpen: !agendaOpen })}
+      >
+        Today&apos;s tasks
+      </button>
       <TagFilter />
       <div className={styles.spacer} />
       <div role="group" aria-label="History" className={styles.history}>
@@ -326,15 +312,21 @@ export function Toolbar({ onToday }: { onToday(): void }) {
                   <span>Mouse &amp; drag</span>
                   <span className={styles.meta}>{currentDragLabel} ›</span>
                 </button>
-                <button type="button" className={styles.menuItem} onClick={() => pick(exportJson)}>
-                  <span>Export JSON</span>
+                <button
+                  type="button"
+                  className={styles.menuItem}
+                  onClick={() => pick(() => setExporting(true))}
+                >
+                  <span>Export…</span>
+                  <span className={styles.meta}>JSON, .ics</span>
                 </button>
                 <button
                   type="button"
                   className={styles.menuItem}
-                  onClick={() => pick(() => void importJson())}
+                  onClick={() => pick(() => setImporting(true))}
                 >
-                  <span>Import JSON</span>
+                  <span>Import…</span>
+                  <span className={styles.meta}>JSON, .ics</span>
                 </button>
               </div>
             ) : submenu === 'tag-display' ? (
@@ -404,6 +396,8 @@ export function Toolbar({ onToday }: { onToday(): void }) {
         </Popover>
       )}
       <TagManager open={managing} onClose={() => setManaging(false)} />
+      <ExportDialog open={exporting} onClose={() => setExporting(false)} />
+      <ImportDialog open={importing} onClose={() => setImporting(false)} />
     </header>
   );
 }
