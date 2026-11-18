@@ -66,6 +66,11 @@ describe('Toolbar menu', () => {
     );
   });
 
+  it('Export .ics opens the export dialog', async () => {
+    await chooseFromMenu('Export .ics');
+    expect(screen.getByRole('dialog', { name: 'Export .ics' })).toBeInTheDocument();
+  });
+
   it('Import replaces the roadmap as one undo step and confirms', async () => {
     vi.mocked(pickTextFile).mockResolvedValue(serializeRoadmap(imported));
     await chooseFromMenu('Import JSON');
@@ -111,6 +116,7 @@ describe('Toolbar menu', () => {
       'Tag display',
       'Mouse & drag',
       'Export JSON',
+      'Export .ics',
       'Import JSON',
     ]);
 

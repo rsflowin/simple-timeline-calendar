@@ -15,6 +15,7 @@ import { useRoadmap } from '../../store/roadmapStore';
 import { useStatus } from '../../store/statusStore';
 import { useUi } from '../../store/uiStore';
 import { calendarTitle, stepCursor } from '../../views/calendar/nav';
+import { ExportIcsDialog } from '../ExportIcsDialog';
 import { Popover } from '../Popover';
 import { TagFilter } from '../TagFilter';
 import { TagManager } from '../TagManager';
@@ -183,6 +184,7 @@ export function Toolbar({ onToday }: { onToday(): void }) {
   const [menu, setMenu] = useState<DOMRect | null>(null);
   const [submenu, setSubmenu] = useState<'root' | 'tag-display' | 'mouse-drag'>('root');
   const [managing, setManaging] = useState(false);
+  const [exportingIcs, setExportingIcs] = useState(false);
   const menuButton = useRef<HTMLButtonElement>(null);
   const dragGroupId = useId();
 
@@ -332,6 +334,13 @@ export function Toolbar({ onToday }: { onToday(): void }) {
                 <button
                   type="button"
                   className={styles.menuItem}
+                  onClick={() => pick(() => setExportingIcs(true))}
+                >
+                  <span>Export .ics</span>
+                </button>
+                <button
+                  type="button"
+                  className={styles.menuItem}
                   onClick={() => pick(() => void importJson())}
                 >
                   <span>Import JSON</span>
@@ -404,6 +413,7 @@ export function Toolbar({ onToday }: { onToday(): void }) {
         </Popover>
       )}
       <TagManager open={managing} onClose={() => setManaging(false)} />
+      <ExportIcsDialog open={exportingIcs} onClose={() => setExportingIcs(false)} />
     </header>
   );
 }
