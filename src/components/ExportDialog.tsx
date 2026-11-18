@@ -1,15 +1,22 @@
 import { useEffect, useId, useRef, useState } from 'react';
 import { todayISO } from '../domain/dates';
 import { selectTasks, toIcs } from '../domain/ics';
+import { serializeRoadmap } from '../domain/schema';
 import { downloadText } from '../storage/fileTransfer';
 import { usePrefs } from '../store/prefsStore';
 import { useDoc } from '../store/roadmapStore';
 import { useStatus } from '../store/statusStore';
 import { TagChip } from './TagChip';
-import styles from './ExportIcsDialog.module.css';
+import styles from './ExportDialog.module.css';
 
-/** Export tasks as an .ics file (e.g. for Google Calendar import), filtered by date range and tags. */
-export function ExportIcsDialog({ open, onClose }: { open: boolean; onClose(): void }) {
+const FORMATS = [
+  { value: 'json', label: 'JSON', hint: 'Backup; re-import with Import.' },
+  { value: 'ics', label: 'iCalendar (.ics)', hint: 'Google Calendar: Settings → Import & export.' },
+] as const;
+type Format = (typeof FORMATS)[number]['value'];
+
+/** Export dialog: JSON or .ics, filtered by date range and tags. */
+export function ExportDialog({ open, onClose }: { open: boolean; onClose(): void }) {
   const ref = useRef<HTMLDialogElement>(null);
 
   useEffect(() => {
@@ -19,7 +26,7 @@ export function ExportIcsDialog({ open, onClose }: { open: boolean; onClose(): v
   }, [open]);
 
   return (
-    <dialog ref={ref} className={styles.dialog} aria-label="Export .ics" onClose={onClose}>
+    <dialog ref={ref} className={styles.dialog} aria-label="Export" onClose={onClose}>
       {/* mounted per open, so the form starts fresh from the current tag filter */}
       {open && <ExportForm onClose={onClose} />}
     </dialog>
@@ -28,6 +35,7 @@ export function ExportIcsDialog({ open, onClose }: { open: boolean; onClose(): v
 
 function ExportForm({ onClose }: { onClose(): void }) {
   const doc = useDoc();
+  const [format, setFormat] = useState<Format>('json');
   const [from, setFrom] = useState('');
   const [to, setTo] = useState('');
   const [tagIds, setTagIds] = useState(() => {
@@ -38,23 +46,38 @@ function ExportForm({ onClose }: { onClose(): void }) {
 
   const rangeError = from && to && from > to ? 'From must be on or before To.' : null;
   const opts = { from: from || undefined, to: to || undefined, tagIds };
-  const count = selectTasks(doc, opts).length;
+  const tasks = selectTasks(doc, opts);
+  const count = tasks.length;
   const toggle = (id: string) =>
     setTagIds(tagIds.includes(id) ? tagIds.filter((x) => x !== id) : [...tagIds, id]);
 
-  const exportIcs = () => {
-    downloadText(toIcs(doc, opts), `roadmap-${todayISO()}.ics`, 'text/calendar');
-    useStatus.getState().show(`Exported ${count} task${count === 1 ? '' : 's'} to .ics.`);
+  const exportFile = () => {
+    const name = `roadmap-${todayISO()}.${format}`;
+    if (format === 'ics') downloadText(toIcs(doc, opts), name, 'text/calendar');
+    // all tags are kept, so a filtered file still imports with every tag
+    else downloadText(serializeRoadmap({ tasks, tags: doc.tags }), name);
+    useStatus.getState().show(`Exported ${count} task${count === 1 ? '' : 's'} to ${name}.`);
     onClose();
   };
 
   return (
     <div className={styles.body}>
-      <h2 className={styles.heading}>Export .ics</h2>
-      <p className={styles.hint}>
-        Import the file in Google Calendar: Settings → Import &amp; export. Leave a date empty for
-        no limit.
-      </p>
+      <h2 className={styles.heading}>Export</h2>
+      <div role="radiogroup" aria-label="Format" className={styles.formats}>
+        {FORMATS.map((f) => (
+          <label key={f.value} className={styles.option}>
+            <input
+              type="radio"
+              name="format"
+              checked={format === f.value}
+              onChange={() => setFormat(f.value)}
+            />
+            <span>
+              {f.label} <span className={styles.hint}>{f.hint}</span>
+            </span>
+          </label>
+        ))}
+      </div>
       <div className={styles.range}>
         <label>
           From
@@ -77,6 +100,7 @@ function ExportForm({ onClose }: { onClose(): void }) {
           />
         </label>
       </div>
+      <p className={styles.hint}>Leave a date empty for no limit.</p>
       {rangeError && (
         <p id={errorId} role="alert" className={styles.error}>
           {rangeError}
@@ -99,7 +123,7 @@ function ExportForm({ onClose }: { onClose(): void }) {
         <button type="button" onClick={onClose}>
           Cancel
         </button>
-        <button type="button" disabled={rangeError !== null || count === 0} onClick={exportIcs}>
+        <button type="button" disabled={rangeError !== null || count === 0} onClick={exportFile}>
           Export
         </button>
       </footer>

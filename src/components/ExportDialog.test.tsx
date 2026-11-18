@@ -6,7 +6,7 @@ import type { RoadmapDoc, Task } from '../domain/types';
 import * as fileTransfer from '../storage/fileTransfer';
 import { usePrefs } from '../store/prefsStore';
 import { useRoadmap } from '../store/roadmapStore';
-import { ExportIcsDialog } from './ExportIcsDialog';
+import { ExportDialog } from './ExportDialog';
 
 const task = (id: string, start: string, end: string, tagIds: string[]): Task => ({
   id,
@@ -30,7 +30,7 @@ const doc: RoadmapDoc = {
   ],
 };
 
-describe('ExportIcsDialog', () => {
+describe('ExportDialog', () => {
   beforeEach(() => {
     useRoadmap.getState().reset(doc);
     usePrefs.getState().set({ tagFilter: [] });
@@ -40,7 +40,7 @@ describe('ExportIcsDialog', () => {
 
   it('counts tasks by date range and tags', async () => {
     const user = userEvent.setup();
-    render(<ExportIcsDialog open onClose={() => {}} />);
+    render(<ExportDialog open onClose={() => {}} />);
     expect(count()).toHaveTextContent('2 tasks');
 
     fireEvent.change(screen.getByLabelText('From'), { target: { value: '2026-02-01' } });
@@ -52,7 +52,7 @@ describe('ExportIcsDialog', () => {
   });
 
   it('rejects From after To', () => {
-    render(<ExportIcsDialog open onClose={() => {}} />);
+    render(<ExportDialog open onClose={() => {}} />);
     fireEvent.change(screen.getByLabelText('From'), { target: { value: '2026-05-01' } });
     fireEvent.change(screen.getByLabelText('To'), { target: { value: '2026-04-01' } });
     expect(screen.getByRole('alert')).toHaveTextContent('From must be on or before To');
@@ -64,10 +64,11 @@ describe('ExportIcsDialog', () => {
     const download = vi.spyOn(fileTransfer, 'downloadText').mockImplementation(() => {});
     const onClose = vi.fn();
     const user = userEvent.setup();
-    render(<ExportIcsDialog open onClose={onClose} />);
+    render(<ExportDialog open onClose={onClose} />);
     expect(screen.getByRole('checkbox', { name: 'Backend' })).toBeChecked();
     expect(count()).toHaveTextContent('1 task ');
 
+    await user.click(screen.getByRole('radio', { name: /iCalendar/ }));
     await user.click(screen.getByRole('button', { name: 'Export' }));
     const [text, name, type] = download.mock.calls[0];
     expect(text).toContain('UID:t2@timeline-calendar');
@@ -75,5 +76,20 @@ describe('ExportIcsDialog', () => {
     expect(name).toMatch(/^roadmap-\d{4}-\d{2}-\d{2}\.ics$/);
     expect(type).toBe('text/calendar');
     expect(onClose).toHaveBeenCalled();
+  });
+
+  it('exports filtered JSON that keeps every tag', async () => {
+    const download = vi.spyOn(fileTransfer, 'downloadText').mockImplementation(() => {});
+    const user = userEvent.setup();
+    render(<ExportDialog open onClose={() => {}} />);
+    expect(screen.getByRole('radio', { name: /JSON/ })).toBeChecked();
+    fireEvent.change(screen.getByLabelText('To'), { target: { value: '2026-01-31' } });
+
+    await user.click(screen.getByRole('button', { name: 'Export' }));
+    const [text, name] = download.mock.calls[0];
+    const json = JSON.parse(text);
+    expect(json.tasks.map((t: Task) => t.id)).toEqual(['t1']);
+    expect(json.tags).toEqual(doc.tags);
+    expect(name).toMatch(/^roadmap-\d{4}-\d{2}-\d{2}\.json$/);
   });
 });

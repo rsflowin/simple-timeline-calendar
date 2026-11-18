@@ -28,6 +28,11 @@
   font-size: 12px;
 }
 
+.formats {
+  display: grid;
+  gap: 4px;
+}
+
 .range {
   display: flex;
   flex-wrap: wrap;

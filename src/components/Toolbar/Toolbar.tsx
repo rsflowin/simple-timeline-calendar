@@ -1,7 +1,8 @@
 import { useId, useRef, useState, type ReactNode } from 'react';
-import { fromDayIndex, todayISO, toDayIndex } from '../../domain/dates';
+import { fromDayIndex, toDayIndex } from '../../domain/dates';
+import { importIcs } from '../../domain/ics';
 import type { TagRowMode } from '../../domain/packRows';
-import { parseRoadmap, serializeRoadmap } from '../../domain/schema';
+import { parseRoadmap } from '../../domain/schema';
 import type { Zoom } from '../../domain/scale';
 import {
   usePrefs,
@@ -10,12 +11,12 @@ import {
   type ViewMode,
 } from '../../store/prefsStore';
 import { flushAutosave } from '../../storage/autosave';
-import { downloadText, pickTextFile } from '../../storage/fileTransfer';
+import { pickTextFile } from '../../storage/fileTransfer';
 import { useRoadmap } from '../../store/roadmapStore';
 import { useStatus } from '../../store/statusStore';
 import { useUi } from '../../store/uiStore';
 import { calendarTitle, stepCursor } from '../../views/calendar/nav';
-import { ExportIcsDialog } from '../ExportIcsDialog';
+import { ExportDialog } from '../ExportDialog';
 import { Popover } from '../Popover';
 import { TagFilter } from '../TagFilter';
 import { TagManager } from '../TagManager';
@@ -144,23 +145,28 @@ function Submenu({
 
 const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? '' : 's'}`;
 
-function exportJson() {
-  downloadText(
-    serializeRoadmap(useRoadmap.getState().history.present),
-    `roadmap-${todayISO()}.json`,
-  );
-}
-
-/** DATA-4: a valid file replaces the roadmap as one undo step; an invalid one changes nothing. */
-async function importJson() {
-  const text = await pickTextFile();
+/**
+ * DATA-4: one picker for both formats. A valid JSON file replaces the roadmap; an .ics file is
+ * merged into it. Either is one undo step; an invalid file changes nothing.
+ */
+async function importFile() {
+  const text = await pickTextFile('.json,.ics,application/json,text/calendar');
   if (text === null) return;
   const { show } = useStatus.getState();
+  const { commit, history } = useRoadmap.getState();
   try {
-    const doc = parseRoadmap(text);
-    useRoadmap.getState().commit(() => doc);
-    flushAutosave();
-    show(`Imported ${plural(doc.tasks.length, 'task')} and ${plural(doc.tags.length, 'tag')}.`);
+    if (/^\s*BEGIN:VCALENDAR/i.test(text)) {
+      const r = importIcs(history.present, text);
+      if (r.added + r.updated) commit(() => r.doc);
+      flushAutosave();
+      const skipped = r.skipped ? `; skipped ${plural(r.skipped, 'event')} without a date` : '';
+      show(`Imported .ics: ${r.added} added, ${r.updated} updated${skipped}.`);
+    } else {
+      const doc = parseRoadmap(text);
+      commit(() => doc);
+      flushAutosave();
+      show(`Imported ${plural(doc.tasks.length, 'task')} and ${plural(doc.tags.length, 'tag')}.`);
+    }
   } catch (err) {
     show(`Import failed: ${(err as Error).message}`);
   }
@@ -185,7 +191,7 @@ export function Toolbar({ onToday }: { onToday(): void }) {
   const [menu, setMenu] = useState<DOMRect | null>(null);
   const [submenu, setSubmenu] = useState<'root' | 'tag-display' | 'mouse-drag'>('root');
   const [managing, setManaging] = useState(false);
-  const [exportingIcs, setExportingIcs] = useState(false);
+  const [exporting, setExporting] = useState(false);
   const menuButton = useRef<HTMLButtonElement>(null);
   const dragGroupId = useId();
 
@@ -338,22 +344,21 @@ export function Toolbar({ onToday }: { onToday(): void }) {
                   <span>Mouse &amp; drag</span>
                   <span className={styles.meta}>{currentDragLabel} ›</span>
                 </button>
-                <button type="button" className={styles.menuItem} onClick={() => pick(exportJson)}>
-                  <span>Export JSON</span>
+                <button
+                  type="button"
+                  className={styles.menuItem}
+                  onClick={() => pick(() => setExporting(true))}
+                >
+                  <span>Export…</span>
+                  <span className={styles.meta}>JSON, .ics</span>
                 </button>
                 <button
                   type="button"
                   className={styles.menuItem}
-                  onClick={() => pick(() => setExportingIcs(true))}
+                  onClick={() => pick(() => void importFile())}
                 >
-                  <span>Export .ics</span>
-                </button>
-                <button
-                  type="button"
-                  className={styles.menuItem}
-                  onClick={() => pick(() => void importJson())}
-                >
-                  <span>Import JSON</span>
+                  <span>Import…</span>
+                  <span className={styles.meta}>JSON, .ics</span>
                 </button>
               </div>
             ) : submenu === 'tag-display' ? (
@@ -423,7 +428,7 @@ export function Toolbar({ onToday }: { onToday(): void }) {
         </Popover>
       )}
       <TagManager open={managing} onClose={() => setManaging(false)} />
-      <ExportIcsDialog open={exportingIcs} onClose={() => setExportingIcs(false)} />
+      <ExportDialog open={exporting} onClose={() => setExporting(false)} />
     </header>
   );
 }

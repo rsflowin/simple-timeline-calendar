@@ -230,7 +230,7 @@ an existing task.
 | **UI-4** | `Pack rows` toggle (applies to both views) |
 | **UI-5** | Tag filter: multi-select; shows tasks having **any** selected tag; empty = all tasks |
 | **UI-6** | `+ New task`, Undo, Redo |
-| **UI-7** | Menu (`Manage tags`, `Tag display` submenu, `Mouse & drag` submenu, `Export JSON`, `Import JSON`) |
+| **UI-7** | Menu (`Manage tags`, `Tag display` submenu, `Mouse & drag` submenu, `Export…`, `Import…`) |
 
 Keyboard shortcuts (ignored while typing in a field):
 
@@ -270,11 +270,18 @@ Keyboard shortcuts (ignored while typing in a field):
   }
   ```
 
-- **DATA-3** Export downloads `roadmap-YYYY-MM-DD.json` in this format.
-- **DATA-4** Import validates the file. If invalid, nothing changes and the
-  error says what's wrong (e.g. `tasks[3].end is before start`). If valid, it
-  replaces the current roadmap as one undoable step. Unknown tag ids on tasks
-  are dropped.
+- **DATA-3** Export opens one dialog: format (JSON in this format, or iCalendar
+  `.ics` with one all-day event per task), an optional From/To range (tasks
+  overlapping it are kept) and tags (none = all; otherwise tasks with any
+  checked tag, pre-filled from the tag filter). It downloads
+  `roadmap-YYYY-MM-DD.json` or `.ics`. Filtered JSON keeps every tag.
+- **DATA-4** Import picks one file, `.json` or `.ics`. JSON is validated; if
+  invalid, nothing changes and the error says what's wrong (e.g.
+  `tasks[3].end is before start`). If valid, it replaces the current roadmap as
+  one undoable step. Unknown tag ids on tasks are dropped. An `.ics` file is
+  merged as one undoable step: CATEGORIES become tags (matched by name), an
+  event whose UID matches a task id updates it, others are added; events
+  without a start date are skipped.
 - **DATA-5** If the saved data on the server can't be read, the raw text is
   kept in `data/backups/`, the app starts empty, and a banner says so and
   offers to download the backup. Data is never silently discarded.

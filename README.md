@@ -60,8 +60,11 @@ stored per browser in `localStorage`.
 If someone on another machine or tab saves changes while your page is open,
 saving warns you to reload so you don't overwrite their edits.
 
-Use **Export JSON** (the `⋯` menu) to back up or move your roadmap, and
-**Import JSON** to load it.
+Use **Export…** (the `⋯` menu) to download your roadmap as JSON (backup) or
+`.ics` (for Google Calendar: Settings → Import & export), optionally limited to
+a date range and tags. **Import…** takes either format: a JSON file replaces the
+roadmap, an `.ics` file is merged into it (events with a known UID update the
+matching task).
 
 If the saved data on the server can't be read, the server keeps a backup copy in
 `data/backups/`, starts empty, and shows a banner with a download link. It

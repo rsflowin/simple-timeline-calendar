@@ -77,9 +77,13 @@ test('pack rows puts non-overlapping tasks on one row; unpacked they get their o
 test('Export JSON downloads a file containing the task', async ({ page }) => {
   await createTask(page, 0, 2, 'Design');
   await page.getByRole('button', { name: 'Menu' }).click();
+  await page.getByRole('button', { name: 'Export…' }).click();
   const [download] = await Promise.all([
     page.waitForEvent('download'),
-    page.getByRole('button', { name: 'Export JSON' }).click(),
+    page
+      .getByRole('dialog', { name: 'Export' })
+      .getByRole('button', { name: 'Export', exact: true })
+      .click(),
   ]);
   expect(download.suggestedFilename()).toBe('roadmap-2026-11-13.json');
   const json = JSON.parse(await readFile(await download.path(), 'utf8'));
@@ -153,7 +157,7 @@ test('Import JSON saves a large multi-byte roadmap (> 64 KiB UTF-8) and survives
   await page.getByRole('button', { name: 'Menu' }).click();
   const [chooser] = await Promise.all([
     page.waitForEvent('filechooser'),
-    page.getByRole('button', { name: 'Import JSON' }).click(),
+    page.getByRole('button', { name: 'Import…' }).click(),
   ]);
   await chooser.setFiles({
     name: 'large-roadmap.json',
