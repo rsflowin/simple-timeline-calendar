@@ -175,6 +175,7 @@ export function Toolbar({ onToday }: { onToday(): void }) {
   const tagRowMode = usePrefs((s) => s.tagRowMode);
   const clickCreate = usePrefs((s) => s.clickCreate);
   const dragBehavior = usePrefs((s) => s.dragBehavior);
+  const agendaOpen = usePrefs((s) => s.agendaOpen);
   const setPrefs = usePrefs((s) => s.set);
   const canUndo = useRoadmap((s) => s.history.past.length > 0);
   const canRedo = useRoadmap((s) => s.history.future.length > 0);
@@ -266,6 +267,15 @@ export function Toolbar({ onToday }: { onToday(): void }) {
         onClick={() => setPrefs({ packRows: !packRows })}
       >
         Pack rows
+      </button>
+      <button
+        type="button"
+        className={styles.toggle}
+        aria-pressed={agendaOpen}
+        title="Today's tasks (A)"
+        onClick={() => setPrefs({ agendaOpen: !agendaOpen })}
+      >
+        Today&apos;s tasks
       </button>
       <TagFilter />
       <div className={styles.spacer} />

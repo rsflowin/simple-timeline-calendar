@@ -19,6 +19,8 @@ interface Prefs {
   tagFilter: string[];
   clickCreate: boolean;
   dragBehavior: DragBehavior;
+  /** Today's tasks side panel. */
+  agendaOpen: boolean;
   set(patch: Partial<Omit<Prefs, 'set'>>): void;
 }
 
@@ -34,6 +36,7 @@ export const usePrefs = create<Prefs>()(
       tagFilter: [],
       clickCreate: true,
       dragBehavior: 'task',
+      agendaOpen: false,
       set: (patch) => set(patch),
     }),
     {
@@ -47,6 +50,7 @@ export const usePrefs = create<Prefs>()(
         tagFilter,
         clickCreate,
         dragBehavior,
+        agendaOpen,
       }) => ({
         view,
         zoom,
@@ -56,6 +60,7 @@ export const usePrefs = create<Prefs>()(
         tagFilter,
         clickCreate,
         dragBehavior,
+        agendaOpen,
       }),
     },
   ),
