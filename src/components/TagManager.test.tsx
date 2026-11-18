@@ -116,6 +116,23 @@ describe('TagManager', () => {
     expect(present().tags.map((t) => t.id)).toEqual(['r', 'b']);
   });
 
+  it('adds a tag on Enter as one undo step', async () => {
+    const user = setup();
+    await user.type(screen.getByRole('textbox', { name: 'New tag name' }), ' Design {Enter}');
+    expect(present().tags.map((t) => t.name)).toEqual(['Urgent', 'Backend', 'Design']);
+    expect(screen.getByRole('textbox', { name: 'Rename Design' })).toBeInTheDocument();
+    expect(screen.getByRole('textbox', { name: 'New tag name' })).toHaveValue('');
+    expect(useRoadmap.getState().history.past).toEqual([doc]);
+  });
+
+  it('shows a duplicate-name error when adding, and changes nothing', async () => {
+    const user = setup();
+    await user.type(screen.getByRole('textbox', { name: 'New tag name' }), 'urgent');
+    await user.click(screen.getByRole('button', { name: 'Add' }));
+    expect(screen.getByRole('alert')).toHaveTextContent('Tag "urgent" already exists');
+    expect(present()).toBe(doc);
+  });
+
   it('reorders tags with arrow keys on the handle', async () => {
     const user = setup();
     screen.getByRole('button', { name: 'Reorder Backend' }).focus();

@@ -1,5 +1,5 @@
 import { useEffect, useId, useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
-import { deleteTag, reorderTags, updateTag } from '../domain/doc';
+import { createTag, deleteTag, reorderTags, updateTag } from '../domain/doc';
 import { LIMITS, TAG_COLORS, type Tag, type TagColor } from '../domain/types';
 import { flushAutosave } from '../storage/autosave';
 import { useDoc, useRoadmap } from '../store/roadmapStore';
@@ -8,7 +8,7 @@ import styles from './TagManager.module.css';
 
 const colorName = (c: TagColor) => c[0].toUpperCase() + c.slice(1);
 
-/** Tag manager dialog (TAG-5): rename, recolour, reorder, delete. Every change is one undo step. */
+/** Tag manager dialog (TAG-5): add, rename, recolour, reorder, delete. Every change is one undo step. */
 export function TagManager({ open, onClose }: { open: boolean; onClose(): void }) {
   const ref = useRef<HTMLDialogElement>(null);
   const tags = useDoc().tags;
@@ -36,7 +36,7 @@ export function TagManager({ open, onClose }: { open: boolean; onClose(): void }
             </p>
           )}
           {tags.length === 0 ? (
-            <p className={styles.muted}>No tags yet. Add them from a task&apos;s Tags field.</p>
+            <p className={styles.muted}>No tags yet. Add one below.</p>
           ) : (
             <SortableList
               items={tags}
@@ -50,6 +50,7 @@ export function TagManager({ open, onClose }: { open: boolean; onClose(): void }
               renderItem={(t, handle) => <TagRow tag={t} handle={handle} />}
             />
           )}
+          <AddTag />
           <footer className={styles.footer}>
             <button type="button" onClick={close}>
               Done
@@ -134,5 +135,47 @@ function TagRow({ tag, handle }: { tag: Tag; handle: ReactNode }) {
         </p>
       )}
     </>
+  );
+}
+
+function AddTag() {
+  const commit = useRoadmap((s) => s.commit);
+  const [name, setName] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const errorId = useId();
+
+  return (
+    <form
+      onSubmit={(e) => {
+        e.preventDefault();
+        try {
+          commit((d) => createTag(d, name));
+          setName('');
+        } catch (err) {
+          setError((err as Error).message);
+        }
+      }}
+    >
+      <div className={styles.line}>
+        <input
+          aria-label="New tag name"
+          placeholder="New tag name"
+          maxLength={LIMITS.tagName}
+          value={name}
+          aria-invalid={error !== null}
+          aria-describedby={error ? errorId : undefined}
+          onChange={(e) => {
+            setName(e.target.value);
+            setError(null);
+          }}
+        />
+        <button type="submit">Add</button>
+      </div>
+      {error && (
+        <p id={errorId} role="alert" className={styles.error}>
+          {error}
+        </p>
+      )}
+    </form>
   );
 }
