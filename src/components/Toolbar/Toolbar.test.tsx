@@ -85,9 +85,7 @@ describe('Toolbar menu', () => {
   it('Import of an .ics merges events into the roadmap as one undo step', async () => {
     vi.mocked(pickTextFile).mockResolvedValue(ics);
     await chooseFromMenu(/^Import…/);
-    expect(await screen.findByRole('alert')).toHaveTextContent(
-      'Imported .ics: 1 added, 0 updated.',
-    );
+    expect(await screen.findByRole('alert')).toHaveTextContent('Imported: 1 added, 0 updated.');
     expect(present().tasks).toEqual([
       expect.objectContaining({ id: 't', title: 'Launch', start: '2026-01-05', end: '2026-01-09' }),
     ]);
@@ -98,14 +96,21 @@ describe('Toolbar menu', () => {
     expect(present()).toBe(before);
   });
 
-  it('Import replaces the roadmap as one undo step and confirms', async () => {
+  it('JSON import adds new tasks and leaves existing tasks and tags untouched, as one undo step', async () => {
+    const existing: RoadmapDoc = {
+      tags: [{ id: 'old', name: 'Old', color: 'red' }],
+      tasks: [{ ...imported.tasks[0], id: 'keep', title: 'Keep me', tagIds: ['old'] }],
+    };
+    useRoadmap.getState().reset(existing);
     vi.mocked(pickTextFile).mockResolvedValue(serializeRoadmap(imported));
     await chooseFromMenu(/^Import…/);
-    expect(await screen.findByRole('alert')).toHaveTextContent('Imported 1 task and 1 tag.');
-    expect(present()).toEqual(imported);
+    expect(await screen.findByRole('alert')).toHaveTextContent('Imported: 1 added, 0 updated.');
+    expect(present().tasks[0]).toBe(existing.tasks[0]);
+    expect(present().tags).toEqual([...existing.tags, ...imported.tags]);
+    expect(present().tasks[1]).toMatchObject({ id: 't', title: 'Launch', tagIds: ['g'] });
 
     useRoadmap.getState().undo();
-    expect(present()).toBe(before);
+    expect(present()).toBe(existing);
   });
 
   it('Import of an invalid file shows the error and changes nothing', async () => {

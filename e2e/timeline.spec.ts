@@ -165,7 +165,7 @@ test('Import JSON saves a large multi-byte roadmap (> 64 KiB UTF-8) and survives
     buffer: Buffer.from(json, 'utf8'),
   });
 
-  await expect(page.getByRole('alert')).toContainText('Imported 10 tasks and 1 tag.');
+  await expect(page.getByRole('alert')).toContainText('Imported: 10 added, 0 updated.');
   await saved;
 
   await page.reload();

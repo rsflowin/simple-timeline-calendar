@@ -1,5 +1,6 @@
 import { useId, useRef, useState, type ReactNode } from 'react';
 import { fromDayIndex, toDayIndex } from '../../domain/dates';
+import { mergeRoadmap } from '../../domain/doc';
 import { importIcs } from '../../domain/ics';
 import type { TagRowMode } from '../../domain/packRows';
 import { parseRoadmap } from '../../domain/schema';
@@ -146,8 +147,8 @@ function Submenu({
 const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? '' : 's'}`;
 
 /**
- * DATA-4: one picker for both formats. A valid JSON file replaces the roadmap; an .ics file is
- * merged into it. Either is one undo step; an invalid file changes nothing.
+ * DATA-4: one picker for both formats. Either is merged into the roadmap (existing tasks and tags
+ * are kept) as one undo step; an invalid file changes nothing.
  */
 async function importFile() {
   const text = await pickTextFile('.json,.ics,application/json,text/calendar');
@@ -155,18 +156,13 @@ async function importFile() {
   const { show } = useStatus.getState();
   const { commit, history } = useRoadmap.getState();
   try {
-    if (/^\s*BEGIN:VCALENDAR/i.test(text)) {
-      const r = importIcs(history.present, text);
-      if (r.added + r.updated) commit(() => r.doc);
-      flushAutosave();
-      const skipped = r.skipped ? `; skipped ${plural(r.skipped, 'event')} without a date` : '';
-      show(`Imported .ics: ${r.added} added, ${r.updated} updated${skipped}.`);
-    } else {
-      const doc = parseRoadmap(text);
-      commit(() => doc);
-      flushAutosave();
-      show(`Imported ${plural(doc.tasks.length, 'task')} and ${plural(doc.tags.length, 'tag')}.`);
-    }
+    const r = /^\s*BEGIN:VCALENDAR/i.test(text)
+      ? importIcs(history.present, text)
+      : mergeRoadmap(history.present, parseRoadmap(text));
+    if (r.added + r.updated) commit(() => r.doc);
+    flushAutosave();
+    const skipped = r.skipped ? `; skipped ${plural(r.skipped, 'invalid item')}` : '';
+    show(`Imported: ${r.added} added, ${r.updated} updated${skipped}.`);
   } catch (err) {
     show(`Import failed: ${(err as Error).message}`);
   }

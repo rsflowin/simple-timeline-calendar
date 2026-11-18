@@ -5,6 +5,7 @@ import {
   deleteTag,
   deleteTask,
   EMPTY_DOC,
+  mergeRoadmap,
   reorderTags,
   updateTag,
   updateTask,
@@ -95,5 +96,56 @@ describe('tags', () => {
     const reordered = reorderTags(doc, ['g3', 'missing', 'g1', 'g3']);
     expect(reordered.tags.map((t) => t.id)).toEqual(['g3', 'g1', 'g2']);
     expect(doc.tags.map((t) => t.id)).toEqual(['g1', 'g2', 'g3']);
+  });
+});
+
+describe('mergeRoadmap', () => {
+  const task = (id: string, tagIds: string[], title = id) => ({
+    ...input,
+    id,
+    title,
+    tagIds,
+    createdAt: T0,
+    updatedAt: T0,
+  });
+  const doc = {
+    tags: [
+      { id: 'a', name: 'Alpha', color: 'red' as const },
+      { id: 'b', name: 'Beta', color: 'blue' as const },
+    ],
+    tasks: [task('t1', ['a']), task('t2', ['b'])],
+  };
+
+  it('keeps existing tasks and tags as they are and adds new ones', () => {
+    const r = mergeRoadmap(doc, {
+      tags: [{ id: 'n', name: 'New', color: 'green' }],
+      tasks: [task('n1', ['n']), task('n2', ['n'])],
+    });
+    expect(r).toMatchObject({ added: 2, updated: 0, skipped: 0 });
+    expect(r.doc.tasks.slice(0, 2)).toEqual(doc.tasks);
+    expect(r.doc.tags).toEqual([...doc.tags, { id: 'n', name: 'New', color: 'green' }]);
+    expect(r.doc.tasks.slice(2).map((t) => t.tagIds)).toEqual([['n'], ['n']]);
+  });
+
+  it('maps incoming tags onto existing ones by id, then by name, without changing them', () => {
+    const r = mergeRoadmap(doc, {
+      tags: [
+        { id: 'a', name: 'Renamed', color: 'gray' },
+        { id: 'x', name: 'beta', color: 'gray' },
+      ],
+      tasks: [task('n1', ['a', 'x'])],
+    });
+    expect(r.doc.tags).toEqual(doc.tags);
+    expect(r.doc.tasks[2].tagIds).toEqual(['a', 'b']);
+  });
+
+  it('updates a task with the same id and skips invalid ones', () => {
+    const r = mergeRoadmap(doc, {
+      tags: [],
+      tasks: [task('t1', ['a'], 'Changed'), { ...task('bad', []), title: '   ' }],
+    });
+    expect(r).toMatchObject({ added: 0, updated: 1, skipped: 1 });
+    expect(r.doc.tasks[0].title).toBe('Changed');
+    expect(r.doc.tasks[1]).toBe(doc.tasks[1]);
   });
 });

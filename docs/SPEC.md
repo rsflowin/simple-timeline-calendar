@@ -275,13 +275,15 @@ Keyboard shortcuts (ignored while typing in a field):
   overlapping it are kept) and tags (none = all; otherwise tasks with any
   checked tag, pre-filled from the tag filter). It downloads
   `roadmap-YYYY-MM-DD.json` or `.ics`. Filtered JSON keeps every tag.
-- **DATA-4** Import picks one file, `.json` or `.ics`. JSON is validated; if
-  invalid, nothing changes and the error says what's wrong (e.g.
-  `tasks[3].end is before start`). If valid, it replaces the current roadmap as
-  one undoable step. Unknown tag ids on tasks are dropped. An `.ics` file is
-  merged as one undoable step: CATEGORIES become tags (matched by name), an
-  event whose UID matches a task id updates it, others are added; events
-  without a start date are skipped.
+- **DATA-4** Import picks one file, `.json` or `.ics`, and merges it into the
+  roadmap as one undoable step; it never replaces the roadmap. JSON is
+  validated first; if invalid, nothing changes and the error says what's wrong
+  (e.g. `tasks[3].end is before start`). Existing tags are never changed: an
+  incoming tag (JSON tag or `.ics` CATEGORIES) maps onto the existing tag with
+  the same id, else the same name, else is added. A task (or `.ics` event UID)
+  whose id matches an existing task updates it; others are added. Unknown tag
+  ids are dropped; invalid tasks and `.ics` events without a start date are
+  skipped.
 - **DATA-5** If the saved data on the server can't be read, the raw text is
   kept in `data/backups/`, the app starts empty, and a banner says so and
   offers to download the backup. Data is never silently discarded.
