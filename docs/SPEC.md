@@ -1,6 +1,6 @@
-# Timeline Calendar — Product Specification (v1)
+# Simple Timeline Calendar — Product Specification (v1)
 
-Status: v1 implemented (0.1.0) · Last updated: 2026-11-14
+Status: v1 implemented · Last updated: 2026-11-18
 
 A local-first roadmap tool. You put tasks on a horizontal timeline or a
 Google-Calendar-style calendar, tag them, and move them around with the mouse.
@@ -16,15 +16,15 @@ plan and from tests, so each behaviour can be traced to the code that does it.
 
 | Area | What ships |
 |---|---|
-| Views | Horizontal timeline; Calendar (Week / Month / Year) |
+| Views | Horizontal timeline; Calendar (Week / Month / Year); Today's tasks side panel |
 | Timeline zoom | Daily, Weekly, Monthly |
 | Tasks | Title, details, start date, end date, tags; create / edit / move / resize / delete |
-| Row packing | Non-overlapping tasks share a row; user can turn it off |
-| Tags | Notion-style: type to filter, Enter to create, colour per tag |
+| Row packing | Non-overlapping tasks share a row, grouped by primary tag (Dedicated or Compact); user can turn it off |
+| Tags | Notion-style: type to filter, Enter to create, colour per tag; tag manager (add, rename, recolour, reorder, delete) |
 | Filter | Show only tasks with any of the selected tags |
 | History | Undo / redo |
-| Data | Saved automatically in the browser; Export / Import as JSON |
-| Run | `npm run dev`, or Docker (`docker compose up`) |
+| Data | Saved automatically on the server (`data/roadmap.json`); Export / Import as JSON or iCalendar (`.ics`) |
+| Run | `npm run dev`, `npm run build && npm start`, or Docker (`docker compose up`) |
 
 ### Later (not v1, but the design must not block them)
 
@@ -40,7 +40,7 @@ plan and from tests, so each behaviour can be traced to the code that does it.
 ### Explicitly out of scope
 
 Times of day, time zones, recurring tasks, dependencies between tasks,
-multi-user sync, accounts, server-side storage.
+multi-user real-time sync, accounts.
 
 ---
 
@@ -215,8 +215,9 @@ an existing task.
   is `Create "<text>"`. Enter on it creates the tag with the next colour in the
   palette rotation and selects it.
 - **TAG-4** Backspace in an empty field removes the last chip.
-- **TAG-5** Tag manager (Preferences → Manage tags): rename, change colour,
-  delete. Deleting a tag removes it from all tasks (one undo step).
+- **TAG-5** Tag manager (`Menu → Manage tags`): add, rename, change colour,
+  drag to reorder (determines row order in Dedicated display mode), and delete.
+  Deleting a tag removes it from all tasks (one undo step).
 
 ---
 
@@ -227,10 +228,16 @@ an existing task.
 | **UI-1** | View switch: `Timeline` / `Calendar` |
 | **UI-2** | Timeline: zoom `Day / Week / Month`, `Today` |
 | **UI-3** | Calendar: navigation bar (§4) |
-| **UI-4** | `Pack rows` toggle (applies to both views) |
+| **UI-4** | `Pack rows` toggle (applies to both views) and `Today's tasks` side panel toggle (`A`) |
 | **UI-5** | Tag filter: multi-select; shows tasks having **any** selected tag; empty = all tasks |
 | **UI-6** | `+ New task`, Undo, Redo |
 | **UI-7** | Menu (`Manage tags`, `Tag display` submenu, `Mouse & drag` submenu, `Export…`, `Import…`) |
+| **UI-8** | Today's tasks side panel: lists tasks overlapping today with dates, tags and full details, honours the tag filter, opens a task on click, overlays on narrow screens; open state persisted |
+
+`Menu → Mouse & drag` lets users toggle click-to-create on empty space and
+switch drag behaviour between **Move task or create new task** (default),
+**Move scroll** (pan/scroll), and **Do nothing** (clicking a task bar always
+opens it).
 
 Keyboard shortcuts (ignored while typing in a field):
 
@@ -238,6 +245,7 @@ Keyboard shortcuts (ignored while typing in a field):
 |---|---|
 | `N` | New task |
 | `T` | Go to today |
+| `A` | Toggle Today's tasks panel |
 | `1` / `2` / `3` | Timeline zoom Day / Week / Month |
 | `Ctrl+Z` | Undo |
 | `Ctrl+Shift+Z`, `Ctrl+Y` | Redo |
@@ -289,8 +297,8 @@ Keyboard shortcuts (ignored while typing in a field):
   kept in `data/backups/`, the app starts empty, and a banner says so and
   offers to download the backup. Data is never silently discarded.
 - **DATA-6** View preferences (view, zoom, calendar mode, pack rows, tag display
-  mode, tag filter, click-to-create, drag behavior) are saved separately per
-  browser in `localStorage`.
+  mode, tag filter, click-to-create, drag behavior, Today's tasks panel open
+  state) are saved separately per browser in `localStorage`.
 
 ---
 
@@ -299,8 +307,8 @@ Keyboard shortcuts (ignored while typing in a field):
 | ID | Requirement |
 |---|---|
 | **NF-1** | Smooth (no visible lag) with 500 tasks and 50 tags |
-| **NF-2** | Works offline; no network requests after load |
+| **NF-2** | Self-hosted / local-network only; no external network requests |
 | **NF-3** | Latest Chrome, Edge, Firefox, Safari; and WebView2 (for Tauri later) |
 | **NF-4** | Keyboard: every action reachable without a mouse except drag gestures; bars are focusable buttons with an `aria-label` such as `Design review, Jan 3 – Jan 9` |
-| **NF-5** | Domain logic (dates, packing, header scales, calendar grid, history, file validation) has unit tests |
-| **NF-6** | MIT-licensed (to confirm), with README, CONTRIBUTING and architecture docs |
+| **NF-5** | Domain logic (dates, packing, header scales, calendar grid, history, file validation, `.ics` import/export) has unit tests |
+| **NF-6** | MIT-licensed, with README, CONTRIBUTING and architecture docs |

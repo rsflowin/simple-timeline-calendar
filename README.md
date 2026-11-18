@@ -14,12 +14,20 @@ and access it from any browser or device on your network.
 - **Tasks** have a title, details, whole-day start and end dates, and tags.
 - **Tags** work like Notion: type to filter, press Enter to create. Each tag
   has a colour.
-- **Pack rows**: tasks that don't overlap share a row. You can turn it off.
-- Create a task by dragging on the timeline or calendar, or with **+ New task**.
-- Drag a task to move it. Drag its edges to change its dates.
-- Tag filter, tag manager, undo and redo.
-- Export and import the roadmap as a JSON file.
-- Saves automatically in the browser.
+- **Pack rows**: non-overlapping tasks share a row, grouped by primary tag
+  (**Dedicated lines per tag** or **Tag-first compact packing**). You can turn
+  it off.
+- **Today's tasks** side panel (`A`): lists every task scheduled today with
+  dates, tags and full details, honouring the tag filter.
+- Create a task by clicking or dragging on the timeline or calendar, or with
+  **+ New task**. Drag a task to move it, or drag its edges to change its dates.
+  **Mouse & drag** settings let you toggle click-to-create or switch dragging to
+  pan/scroll or off.
+- Tag filter, tag manager (add, rename, recolour, drag-to-reorder and delete),
+  undo and redo.
+- Export and import the roadmap as **JSON** or **iCalendar (`.ics`)** (with
+  date-range and tag filters on export, and **Add** or **Replace** on import).
+- Saves automatically on the server (`data/roadmap.json`).
 
 | Calendar (Month)                                       | Task dialog                                 |
 | ------------------------------------------------------ | ------------------------------------------- |
@@ -54,8 +62,9 @@ Tasks and tags are stored on the server as JSON in `data/roadmap.json`
 browser or machine opening the server URL loads and edits the same roadmap.
 Changes are saved automatically 300 ms after an edit and when leaving the page.
 
-View preferences (Timeline vs Calendar, zoom level, Pack rows, tag filter) are
-stored per browser in `localStorage`.
+View preferences (Timeline vs Calendar, zoom level, Pack rows, Tag display,
+Mouse & drag, tag filter, Today's tasks panel) are stored per browser in
+`localStorage`.
 
 If someone on another machine or tab saves changes while your page is open,
 saving warns you to reload so you don't overwrite their edits.
@@ -79,6 +88,7 @@ Shortcuts are ignored while you type in a field.
 | ------------------------ | ------------------------------------------------------- |
 | `N`                      | New task                                                |
 | `T`                      | Go to today                                             |
+| `A`                      | Toggle Today's tasks panel                              |
 | `1` / `2` / `3`          | Timeline zoom Day / Week / Month                        |
 | `Ctrl+Z`                 | Undo                                                    |
 | `Ctrl+Shift+Z`, `Ctrl+Y` | Redo                                                    |
