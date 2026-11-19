@@ -89,3 +89,43 @@
 .save:hover:not(:disabled) {
   background: var(--color-selection-hover);
 }
+
+.date {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 5px 8px;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  background: var(--color-surface);
+  color: var(--color-text);
+  cursor: pointer;
+}
+
+.date:hover {
+  background: var(--color-hover);
+}
+
+.date:has(input:focus-visible) {
+  outline: 2px solid var(--color-selection);
+  outline-offset: 1px;
+}
+
+.date[data-invalid] {
+  border-color: var(--color-danger);
+}
+
+.date svg {
+  color: var(--color-text-muted);
+}
+
+/* covers the field so clicks and typing reach it; the text above shows its value */
+.date input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  opacity: 0;
+  cursor: pointer;
+}

@@ -9,8 +9,10 @@ import {
   type Ref,
 } from 'react';
 import {
+  formatMonthName,
   formatRange,
   fromDayIndex,
+  parts,
   todayISO,
   toDayIndex,
   weekday,
@@ -28,7 +30,8 @@ import { useStatus } from '../../store/statusStore';
 import { useUi } from '../../store/uiStore';
 import { openTask } from '../openTask';
 import { taskColor } from '../taskColor';
-import { dayAt } from './layout';
+import { TagChip } from '../../components/TagChip';
+import { centreDay, dayAt } from './layout';
 import { TaskBar } from './TaskBar';
 import { TimelineHeader } from './TimelineHeader';
 import { useTimelineRange } from './useTimelineRange';
@@ -37,9 +40,15 @@ import styles from './timeline.module.css';
 const ROW_HEIGHT = 32;
 const BAR_HEIGHT = 24;
 const BAR_INSET = (ROW_HEIGHT - BAR_HEIGHT) / 2;
+/** Tag header above each tag's rows (when group labels are on). */
+const GROUP_HEAD = 24;
+/** Days ‹ › moves the timeline, per zoom. */
+const STEP_DAYS = { day: 7, week: 28, month: 91 } as const;
 
 export interface TimelineHandle {
   scrollToDay(day: DayIndex): void;
+  /** Move about one screenful-ish back or forward (toolbar ‹ ›). */
+  step(dir: 1 | -1): void;
   focus(): void;
 }
 
@@ -48,28 +57,41 @@ export function TimelineView({ ref }: { ref?: Ref<TimelineHandle> }) {
   const zoom = usePrefs((s) => s.zoom);
   const pack = usePrefs((s) => s.packRows);
   const tagRowMode = usePrefs((s) => s.tagRowMode);
+  const groupLabels = usePrefs((s) => s.groupLabels);
   const tagFilter = usePrefs((s) => s.tagFilter);
   const clickCreate = usePrefs((s) => s.clickCreate);
   const dragBehavior = usePrefs((s) => s.dragBehavior);
   const selectedId = useUi((s) => s.selectedId);
   const today = toDayIndex(todayISO());
   const { ref: scroller, st, sync, scrollToDay } = useTimelineRange(zoom, today);
-  useImperativeHandle(
-    ref,
-    () => ({ scrollToDay, focus: () => scroller.current?.focus({ preventScroll: true }) }),
-    [scrollToDay, scroller],
-  );
   const { from, to, win } = st;
   const px = PX_PER_DAY[st.zoom];
   // Drag callbacks outlive the render that started them; the range may grow mid-drag.
-  const live = useRef({ from, px });
+  const live = useRef({ from, px, zoom: st.zoom });
   useLayoutEffect(() => {
-    live.current = { from, px };
+    live.current = { from, px, zoom: st.zoom };
   });
+  const centre = () => {
+    const el = scroller.current!;
+    return centreDay(live.current.from, live.current.px, el.scrollLeft, el.clientWidth);
+  };
+  /** Tells the toolbar which month is in the middle of the screen. */
+  const publishTitle = () => {
+    const c = Math.floor(centre());
+    useUi.getState().setTimelineTitle(`${formatMonthName(c)} ${parts(c).year}`);
+  };
+  // publishTitle reads only refs and the DOM; rerun whenever the range or zoom moves
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useLayoutEffect(publishTitle, [st]);
+  useImperativeHandle(ref, () => ({
+    scrollToDay,
+    step: (dir) => scrollToDay(Math.floor(centre()) + dir * STEP_DAYS[live.current.zoom]),
+    focus: () => scroller.current?.focus({ preventScroll: true }),
+  }));
 
   const grid = useRef<HTMLDivElement>(null);
-  /** Dashed bar while drag-creating, kept until quick-create closes (TL-11). */
-  const [draft, setDraft] = useState<(DayRange & { row: number }) | null>(null);
+  /** Dashed bar while drag-creating, kept until quick-create closes (TL-11). `top`: its row's y. */
+  const [draft, setDraft] = useState<(DayRange & { top: number }) | null>(null);
   /** Bar being moved or resized; it keeps its row until release (TL-13, TL-14). */
   const [preview, setPreview] = useState<(DayRange & { id: string }) | null>(null);
   const [panning, setPanning] = useState(false);
@@ -92,11 +114,39 @@ export function TimelineView({ ref }: { ref?: Ref<TimelineHandle> }) {
     () => packRows(spans, pack, { tagOrder, tagOf: (s) => s.task.tagIds[0], mode: tagRowMode }),
     [spans, pack, tagOrder, tagRowMode],
   );
+  // Headers only make sense when each row holds one tag: Pack rows on, one row per tag.
+  const showGroups = groupLabels && pack && tagRowMode === 'dedicated';
+  const layout = useMemo(() => {
+    const tagsById = new Map(doc.tags.map((t) => [t.id, t]));
+    const tops: number[] = [];
+    const heads: { top: number; tagId: string }[] = [];
+    let y = 0;
+    let prev: string | null = null;
+    for (const row of rows) {
+      if (showGroups) {
+        const id = row[0].task.tagIds[0];
+        const tagId = id !== undefined && tagsById.has(id) ? id : '';
+        if (tagId !== prev) {
+          heads.push({ top: y, tagId });
+          y += GROUP_HEAD;
+          prev = tagId;
+        }
+      }
+      tops.push(y);
+      y += ROW_HEIGHT;
+    }
+    return { tops, heads, height: y, tagsById };
+  }, [rows, showGroups, doc.tags]);
+  /** y of the row slot under a point `py` px below the grid top; past the last row, empty slots. */
+  const slotTop = (py: number) => {
+    for (const t of layout.tops) if (py < t + ROW_HEIGHT) return t;
+    return layout.height + Math.max(0, Math.floor((py - layout.height) / ROW_HEIGHT)) * ROW_HEIGHT;
+  };
   const { top, bottom } = useMemo(() => headerRows(st.zoom, win[0], win[1]), [st.zoom, win]);
   const x = (day: number) => (day - from) * px;
 
-  const openQuickCreateAt = (start: DayIndex, end: DayIndex, row: number) => {
-    setDraft({ start, end, row });
+  const openQuickCreateAt = (start: DayIndex, end: DayIndex, rowTop: number) => {
+    setDraft({ start, end, top: rowTop });
     const g = grid.current!.getBoundingClientRect();
     const { from, px } = live.current;
     // Opened after pointerup: the popover closes on any pointerdown outside it.
@@ -105,7 +155,7 @@ export function TimelineView({ ref }: { ref?: Ref<TimelineHandle> }) {
       end: fromDayIndex(end),
       anchor: new DOMRect(
         g.left + (start - from) * px,
-        g.top + row * ROW_HEIGHT + BAR_INSET,
+        g.top + rowTop + BAR_INSET,
         (end - start + 1) * px,
         BAR_HEIGHT,
       ),
@@ -121,7 +171,7 @@ export function TimelineView({ ref }: { ref?: Ref<TimelineHandle> }) {
     const at = (clientX: number) =>
       dayAt(live.current.from, live.current.px, clientX - rect().left);
     const d0 = at(e.clientX);
-    const row = Math.max(0, Math.floor((e.clientY - rect().top) / ROW_HEIGHT));
+    const row = slotTop(e.clientY - rect().top);
     if (dragBehavior !== 'task') {
       startNonTaskDrag(e, {
         scrollEl: scroller.current,
@@ -137,7 +187,7 @@ export function TimelineView({ ref }: { ref?: Ref<TimelineHandle> }) {
     }
     const draftAt = (clientX: number) => {
       const [start, end] = rangeBetween(d0, at(clientX));
-      return { start, end, row };
+      return { start, end, top: row };
     };
     startPointerDrag(e, {
       onMove: (_dx, _dy, ev) => setDraft(draftAt(ev.clientX)),
@@ -202,19 +252,36 @@ export function TimelineView({ ref }: { ref?: Ref<TimelineHandle> }) {
       data-drag={dragBehavior}
       data-click-create={clickCreate ? undefined : 'off'}
       data-panning={isPanning ? 'true' : undefined}
-      onScroll={sync}
+      onScroll={() => {
+        sync();
+        publishTitle();
+      }}
       tabIndex={0}
       role="region"
       aria-label="Timeline"
     >
       <div className={styles.content} style={{ width: (to - from) * px }}>
-        <TimelineHeader top={top} bottom={bottom} from={from} px={px} />
+        <TimelineHeader
+          top={top}
+          bottom={bottom}
+          from={from}
+          px={px}
+          today={st.zoom === 'day' ? today : undefined}
+        />
         <div
           ref={grid}
           className={styles.grid}
-          style={{ height: (rows.length + 1) * ROW_HEIGHT }}
+          style={{ height: layout.height + ROW_HEIGHT }}
           onPointerDown={onGridPointerDown}
         >
+          {layout.heads.map(({ top, tagId }) => {
+            const tag = layout.tagsById.get(tagId);
+            return (
+              <div key={`g${tagId}`} className={styles.groupHead} style={{ top }}>
+                <span className={styles.groupLabel}>{tag ? <TagChip tag={tag} /> : 'No tag'}</span>
+              </div>
+            );
+          })}
           {st.zoom === 'day' &&
             bottom
               .filter((c) => weekday(c.start) >= 5)
@@ -243,13 +310,12 @@ export function TimelineView({ ref }: { ref?: Ref<TimelineHandle> }) {
                   span={s}
                   left={x(start)}
                   width={(end - start + 1) * px}
-                  top={r * ROW_HEIGHT + BAR_INSET}
+                  top={layout.tops[r] + BAR_INSET}
                   color={taskColor(s.task, doc.tags)}
                   selected={s.id === selectedId}
                   canDrag={dragBehavior === 'task'}
                   tip={p === preview ? formatRange(p.start, p.end) : undefined}
                   onPointerDown={(e) => onBarPointerDown(e, s)}
-                  onOpen={() => openTask(s.id)}
                 />
               );
             }),
@@ -260,7 +326,7 @@ export function TimelineView({ ref }: { ref?: Ref<TimelineHandle> }) {
               style={{
                 left: x(draft.start),
                 width: (draft.end - draft.start + 1) * px,
-                top: draft.row * ROW_HEIGHT + BAR_INSET,
+                top: draft.top + BAR_INSET,
               }}
             >
               {formatRange(draft.start, draft.end)}

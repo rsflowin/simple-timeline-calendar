@@ -34,11 +34,12 @@ const tops = (ids = ['a', 'b', 'c']) =>
 describe('TimelineView', () => {
   beforeEach(() => {
     useRoadmap.getState().reset(doc);
-    useUi.setState({ quickCreate: null, editing: null, selectedId: null });
+    useUi.setState({ quickCreate: null, editing: null, selectedId: null, peekId: null });
     usePrefs.setState({
       zoom: 'day',
       packRows: true,
       tagRowMode: 'dedicated',
+      groupLabels: false,
       tagFilter: [],
       clickCreate: true,
       dragBehavior: 'task',
@@ -49,7 +50,24 @@ describe('TimelineView', () => {
     render(<TimelineView />);
     const a = screen.getByRole('button', { name: /^Task a,/ });
     expect(a.getAttribute('aria-label')).toMatch(/^Task a, \w+ \d+ – \w+ \d+$/);
-    expect(a).toHaveAttribute('title', a.getAttribute('aria-label'));
+    // no native tooltip: the hover card shows the full title
+    expect(a).not.toHaveAttribute('title');
+  });
+
+  it('puts a tag header above each tag group when tag headers are on', () => {
+    usePrefs.setState({ groupLabels: true });
+    render(<TimelineView />);
+    expect(screen.getByText('Urgent')).toBeInTheDocument();
+    expect(screen.getByText('No tag')).toBeInTheDocument();
+    // 24 px header, then the row; the untagged group gets its own header
+    expect(tops()).toEqual(['28px', '84px', '84px']);
+    act(() => usePrefs.setState({ tagRowMode: 'compact' }));
+    expect(screen.queryByText('No tag')).toBeNull();
+  });
+
+  it('publishes the month at the centre for the toolbar title', () => {
+    render(<TimelineView />);
+    expect(useUi.getState().timelineTitle).toMatch(/^[A-Z][a-z]+ \d{4}$/);
   });
 
   it('packs tasks by tag group when packRows is on, or one row each when packing is off', () => {
@@ -188,11 +206,13 @@ describe('TimelineView', () => {
     expect(useRoadmap.getState().history.present.tasks[0]).toEqual(before);
     expect(useUi.getState().editing).toBeNull();
 
-    // Clicking a bar still opens the Edit task dialog
+    // Clicking a bar still previews it; a double-click opens the Edit task dialog
     fireEvent.pointerDown(bar, { button: 0, clientX: 50, clientY: 10 });
     act(() => {
       window.dispatchEvent(new MouseEvent('pointerup', { clientX: 50, clientY: 10 }));
     });
+    expect(useUi.getState().peekId).toBe('a');
+    fireEvent.doubleClick(bar);
     expect(useUi.getState().editing).toEqual({ mode: 'edit', id: 'a' });
   });
 

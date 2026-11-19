@@ -78,6 +78,7 @@ const MONTH = fmt({ month: 'short' });
 const MONTH_NAME = fmt({ month: 'long' });
 const MONTH_YEAR = fmt({ month: 'short', year: 'numeric' });
 const MONTH_DAY = fmt({ month: 'short', day: 'numeric' });
+const FULL_DATE = fmt({ weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
 const WEEKDAY = fmt({ weekday: 'short' });
 
 export const formatMonth = (day: DayIndex) => MONTH.format(day * MS_PER_DAY);
@@ -85,9 +86,21 @@ export const formatMonthName = (day: DayIndex) => MONTH_NAME.format(day * MS_PER
 export const formatMonthYear = (day: DayIndex) => MONTH_YEAR.format(day * MS_PER_DAY);
 export const formatMonthDay = (day: DayIndex) => MONTH_DAY.format(day * MS_PER_DAY);
 export const formatWeekday = (day: DayIndex) => WEEKDAY.format(day * MS_PER_DAY);
+/** `Sun, Nov 15, 2026`: how the Task dialog shows a date. */
+export const formatFullDate = (day: DayIndex) => FULL_DATE.format(day * MS_PER_DAY);
 
 export function formatRange(start: DayIndex, end: DayIndex): string {
   return start === end
     ? formatMonthDay(start)
     : `${formatMonthDay(start)} – ${formatMonthDay(end)}`;
+}
+
+/** `Nov 15 – Nov 30, 2026` (or `Dec 28, 2026 – Jan 3, 2027`): a range with the year(s), for places that show one task. */
+export function formatRangeWithYear(start: DayIndex, end: DayIndex): string {
+  const a = parts(start).year;
+  const b = parts(end).year;
+  if (start === end) return `${formatMonthDay(start)}, ${a}`;
+  return a === b
+    ? `${formatMonthDay(start)} – ${formatMonthDay(end)}, ${b}`
+    : `${formatMonthDay(start)}, ${a} – ${formatMonthDay(end)}, ${b}`;
 }

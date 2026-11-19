@@ -70,5 +70,7 @@ test('Month view respects Mouse & drag Do nothing and Click-to-create off settin
   await expect(bar).toHaveAccessibleName('Launch, Nov 13');
 
   await bar.click();
+  await expect(page.getByRole('complementary', { name: 'Task preview' })).toBeVisible();
+  await bar.dblclick();
   await expect(page.getByRole('dialog', { name: 'Edit task' })).toBeVisible();
 });

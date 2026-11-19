@@ -1,16 +1,19 @@
 import { createRef } from 'react';
 import { Toolbar } from './components/Toolbar/Toolbar';
 import { QuickCreate } from './components/QuickCreate';
+import { ShortcutsDialog } from './components/ShortcutsDialog';
+import { TaskHoverCard } from './components/TaskHoverCard';
 import { StatusBanner } from './components/StatusBanner';
 import { TaskDialog } from './components/TaskDialog/TaskDialog';
-import { TodayPanel } from './components/TodayPanel';
-import { todayISO, toDayIndex } from './domain/dates';
+import { TaskPeek, TodayPanel } from './components/TodayPanel';
+import { fromDayIndex, todayISO, toDayIndex } from './domain/dates';
 import { deleteTask } from './domain/doc';
 import { useShortcuts } from './hooks/useShortcuts';
 import { usePrefs } from './store/prefsStore';
 import { useRoadmap } from './store/roadmapStore';
 import { useUi } from './store/uiStore';
 import { CalendarView, type CalendarHandle } from './views/calendar/CalendarView';
+import { stepCursor } from './views/calendar/nav';
 import { TimelineView, type TimelineHandle } from './views/timeline/TimelineView';
 import styles from './App.module.css';
 
@@ -30,12 +33,19 @@ const deleteSelected = () => {
   if (!id || !document.activeElement?.closest('main')) return;
   roadmap.commit((d) => deleteTask(d, id));
   ui.select(null);
+  ui.peek(null);
   focusView();
 };
 const goToToday = () =>
   usePrefs.getState().view === 'calendar'
     ? setPrefs({ cursor: todayISO() })
     : timeline.current?.scrollToDay(toDayIndex(todayISO()));
+const step = (dir: 1 | -1) => {
+  const { view, calendarMode, cursor } = usePrefs.getState();
+  if (view === 'timeline') timeline.current?.step(dir);
+  else setPrefs({ cursor: fromDayIndex(stepCursor(calendarMode, toDayIndex(cursor), dir)) });
+};
+const showShortcuts = () => ui.setShortcutsOpen(true);
 
 const SHORTCUTS: Record<string, () => void> = {
   n: () => ui.openNew(),
@@ -49,28 +59,34 @@ const SHORTCUTS: Record<string, () => void> = {
   '1': () => setPrefs({ zoom: 'day' }),
   '2': () => setPrefs({ zoom: 'week' }),
   '3': () => setPrefs({ zoom: 'month' }),
+  '?': showShortcuts,
+  'shift+?': showShortcuts,
   escape: () => {
     ui.closeQuickCreate();
     ui.select(null);
+    ui.peek(null);
   },
 };
 
 export default function App() {
   const view = usePrefs((s) => s.view);
   const agendaOpen = usePrefs((s) => s.agendaOpen);
+  const peekId = useUi((s) => s.peekId);
   useShortcuts(SHORTCUTS);
   return (
     <div className={styles.app}>
-      <Toolbar onToday={goToToday} />
+      <Toolbar onToday={goToToday} onStep={step} />
       <StatusBanner />
       <div className={styles.row}>
         <main className={styles.body}>
           {view === 'timeline' ? <TimelineView ref={timeline} /> : <CalendarView ref={calendar} />}
         </main>
-        {agendaOpen && <TodayPanel />}
+        {peekId ? <TaskPeek id={peekId} /> : agendaOpen && <TodayPanel />}
       </div>
       <TaskDialog onDeleted={focusView} />
       <QuickCreate />
+      <ShortcutsDialog />
+      <TaskHoverCard />
     </div>
   );
 }

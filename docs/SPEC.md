@@ -16,7 +16,7 @@ plan and from tests, so each behaviour can be traced to the code that does it.
 
 | Area | What ships |
 |---|---|
-| Views | Horizontal timeline; Calendar (Week / Month / Year); Today's tasks side panel |
+| Views | Horizontal timeline; Calendar (Week / Month / Year); Agenda (today's tasks) side panel; task preview side panel |
 | Timeline zoom | Daily, Weekly, Monthly |
 | Tasks | Title, details, start date, end date, tags; create / edit / move / resize / delete |
 | Row packing | Non-overlapping tasks share a row, grouped by primary tag (Dedicated or Compact); user can turn it off |
@@ -106,8 +106,12 @@ tags.
 - **TL-5** Changing zoom keeps the date at the centre of the screen at the
   centre.
 - **TL-6** "Today" button scrolls so today is centred.
-- **TL-7** Each bar shows its title (truncated with ellipsis). Hover shows a
-  tooltip: title and date range.
+- **TL-7** Each bar shows its title (truncated with ellipsis). Resting the mouse
+  on a bar shows a hover card: full title, dates with the year, and tags (also
+  on calendar bars).
+- **TL-7a** With Pack rows ON, One row per tag, and **Show tag headers** ON
+  (default), a header with the tag's name sits above each tag's rows (`No tag`
+  for untagged). Toggled in the toolbar's Display popover; remembered.
 
 ### 3.2 Row packing (requirement 2.2)
 
@@ -115,8 +119,8 @@ tags.
   tag (`tagIds[0]`, ordered by the document's tag list with untagged tasks
   last), sorted by start date (longer first on ties), and packed so
   non-overlapping tasks with the same tag share a line (inclusive end days
-  overlap). In **Dedicated lines per tag** mode (default), each tag keeps its
-  own row(s); in **Tag-first compact packing** mode, compatible whole tracks
+  overlap). In **One row per tag** mode (default), each tag keeps its
+  own row(s); in **Pack tags together** mode, compatible whole tracks
   across tags can share rows when dates do not overlap.
 - **TL-9** With **Pack rows OFF**, every task gets its own row, same order.
 - **TL-10** The toggle is a view preference: it is remembered, it is not part
@@ -130,7 +134,7 @@ tags.
 | **TL-12** | Click (move < 4 px) on empty space | Quick-create for one column unit: 1 day (Daily), that ISO week Mon–Sun (Weekly), that whole month (Monthly) |
 | **TL-13** | Drag a bar's body | Moves the task by whole days; duration unchanged |
 | **TL-14** | Drag a bar's left / right edge (6 px handle) | Changes start / end by whole days; a task can't become shorter than 1 day |
-| **TL-15** | Click a bar | Selects it and opens the Task dialog |
+| **TL-15** | Click a bar | Selects it and shows it in the task preview panel; double-click (or `Enter` on a focused bar) opens the Task dialog |
 | **TL-16** | While dragging | A tooltip shows the new start – end |
 | **TL-17** | Esc while dragging | Cancels; nothing changes |
 
@@ -151,13 +155,13 @@ Navigation bar: `Today` · `‹` · `›` · title · `Week | Month | Year`.
   week boundary is drawn as one piece per week row; rounded ends only where
   the task really starts / ends.
 - **CAL-3** Within each week row, bars use the same tag-aware packing rule as
-  TL-8 (per week, respecting the Pack rows toggle and Tag display preference).
+  TL-8 (per week, respecting the Pack rows and tag rows preferences).
 - **CAL-4** If a day cell can't fit all its lanes, the last lane shows
   `+N more`; clicking it opens a popover listing that day's tasks.
 - **CAL-5** Click a day → quick-create a 1-day task. Drag across days →
   quick-create for that range (can span week rows).
 - **CAL-6** Drag a bar → move by whole days. Drag a bar's end handle → resize.
-  Click a bar → Task dialog.
+  Click a bar → task preview panel; double-click → Task dialog.
 
 ### 4.2 Week view
 
@@ -226,18 +230,23 @@ an existing task.
 | ID | Item |
 |---|---|
 | **UI-1** | View switch: `Timeline` / `Calendar` |
-| **UI-2** | Timeline: zoom `Day / Week / Month`, `Today` |
+| **UI-2** | Both views: `‹ Today ›` and a title (calendar: §4; timeline: the month at the centre, `‹ ›` move 1 week / 4 weeks / 3 months by zoom). Timeline: zoom `Day / Week / Month` |
 | **UI-3** | Calendar: navigation bar (§4) |
-| **UI-4** | `Pack rows` toggle (applies to both views) and `Today's tasks` side panel toggle (`A`) |
+| **UI-4** | `Display` popover: `Pack rows` (both views), tag rows (`One row per tag` / `Pack tags together`), `Show tag headers`. `Agenda` side panel toggle (`A`) |
 | **UI-5** | Tag filter: multi-select; shows tasks having **any** selected tag; empty = all tasks |
-| **UI-6** | `+ New task`, Undo, Redo |
-| **UI-7** | Menu (`Manage tags`, `Tag display` submenu, `Mouse & drag` submenu, `Export…`, `Import…`) |
-| **UI-8** | Today's tasks side panel: lists tasks overlapping today with dates, tags and full details, honours the tag filter, opens a task on click, overlays on narrow screens; open state persisted |
+| **UI-6** | `New task`, Undo, Redo (icon buttons) |
+| **UI-7** | Menu (`Manage tags`, `Mouse & drag` submenu, `Keyboard shortcuts`, `Export…`, `Import…`) |
+| **UI-8** | Agenda side panel: lists tasks overlapping today with dates, tags and full details, honours the tag filter, opens a task for editing on click, overlays on narrow screens; open state persisted |
+| **UI-9** | Task preview panel: the clicked task's title, dates (with year, length or progress), tags and details, with `Edit`; replaces the agenda while open; `Esc` or × closes it |
+| **UI-10** | Today is marked the same way everywhere a date number shows: a red pill (Month cell, Week header, Year day, Timeline Day-zoom header) |
+| **UI-11** | Task dialog shows dates in the app's format (`Sun, Nov 15, 2026`); clicking a date opens the native picker |
 
 `Menu → Mouse & drag` lets users toggle click-to-create on empty space and
 switch drag behaviour between **Move task or create new task** (default),
 **Move scroll** (pan/scroll), and **Do nothing** (clicking a task bar always
-opens it).
+previews it).
+
+`?` or `Menu → Keyboard shortcuts` shows the shortcut list.
 
 Keyboard shortcuts (ignored while typing in a field):
 
@@ -245,12 +254,14 @@ Keyboard shortcuts (ignored while typing in a field):
 |---|---|
 | `N` | New task |
 | `T` | Go to today |
-| `A` | Toggle Today's tasks panel |
+| `A` | Toggle the Agenda panel |
+| `Enter` | Edit the focused task |
+| `?` | Show keyboard shortcuts |
 | `1` / `2` / `3` | Timeline zoom Day / Week / Month |
 | `Ctrl+Z` | Undo |
 | `Ctrl+Shift+Z`, `Ctrl+Y` | Redo |
 | `Delete` / `Backspace` | Delete the selected task |
-| `Esc` | Close popover / dialog, cancel drag, clear selection |
+| `Esc` | Close popover / dialog, cancel drag, clear selection, close the task preview |
 
 ### 6.1 Undo / redo
 
@@ -297,7 +308,7 @@ Keyboard shortcuts (ignored while typing in a field):
   kept in `data/backups/`, the app starts empty, and a banner says so and
   offers to download the backup. Data is never silently discarded.
 - **DATA-6** View preferences (view, zoom, calendar mode, pack rows, tag display
-  mode, tag filter, click-to-create, drag behavior, Today's tasks panel open
+  mode, tag filter, click-to-create, drag behavior, Agenda panel open, tag headers
   state) are saved separately per browser in `localStorage`.
 
 ---

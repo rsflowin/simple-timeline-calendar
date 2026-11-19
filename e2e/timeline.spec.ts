@@ -58,18 +58,15 @@ test('pack rows puts non-overlapping tasks on one row; unpacked they get their o
   const beta = page.getByRole('button', { name: /^Beta, / });
   const top = async () => [(await alpha.boundingBox())!.y, (await beta.boundingBox())!.y];
 
-  await expect(page.getByRole('button', { name: 'Pack rows' })).toHaveAttribute(
-    'aria-pressed',
-    'true',
-  );
+  await page.getByRole('button', { name: 'Display' }).click();
+  const pack = page.getByRole('checkbox', { name: /Pack rows/ });
+  await expect(pack).toBeChecked();
   const [a, b] = await top();
   expect(a).toBe(b);
 
-  await page.getByRole('button', { name: 'Pack rows' }).click();
-  await expect(page.getByRole('button', { name: 'Pack rows' })).toHaveAttribute(
-    'aria-pressed',
-    'false',
-  );
+  await pack.click();
+  await expect(pack).not.toBeChecked();
+  await page.keyboard.press('Escape');
   const [a2, b2] = await top();
   expect(a2).not.toBe(b2);
 });
@@ -118,7 +115,7 @@ test('tasks survive a reload and appear in another browser context', async ({ pa
     await createTask(page, 3, 4, 'Build');
     await saved2;
 
-    await otherPage.getByRole('button', { name: '+ New task' }).click();
+    await otherPage.getByRole('button', { name: 'New task' }).click();
     const dialog = otherPage.getByRole('dialog', { name: 'New task' });
     await dialog.getByLabel('Title').fill('Stale edit');
     await dialog.getByRole('button', { name: 'Save' }).click();
@@ -176,7 +173,7 @@ test('Import JSON saves a large multi-byte roadmap (> 64 KiB UTF-8) and survives
   await expect(page.getByRole('button', { name: '작업 1, Nov 13 – Nov 15' })).toBeVisible();
 });
 
-test('Menu Tag display switches between dedicated tag lines and compact packing, and opens Manage tags', async ({
+test('Display switches between one row per tag and packing tags together; Menu opens Manage tags', async ({
   page,
 }) => {
   const seeded = JSON.stringify({
@@ -230,16 +227,16 @@ test('Menu Tag display switches between dedicated tag lines and compact packing,
   expect(await y('Beta 1')).not.toBe(await y('Alpha 1'));
 
   await expect(page.getByRole('button', { name: 'Preferences' })).toHaveCount(0);
-  await page.getByRole('button', { name: 'Menu' }).click();
-  await page.getByRole('button', { name: /Tag display/ }).click();
-  await page.getByRole('radio', { name: /Tag-first compact packing/ }).click();
+  await page.getByRole('button', { name: 'Display' }).click();
+  await page.getByRole('radio', { name: /Pack tags together/ }).click();
 
   // Compact: non-overlapping tracks share row 0
   expect(await y('Beta 1')).toBe(await y('Alpha 1'));
   expect(await y('Alpha 2')).toBe(await y('Alpha 1'));
 
   // Manage tags is reachable from Menu
-  await page.getByRole('button', { name: 'Back to Menu' }).click();
+  await page.keyboard.press('Escape');
+  await page.getByRole('button', { name: 'Menu' }).click();
   await page.getByRole('button', { name: 'Manage tags' }).click();
   await expect(page.getByRole('dialog', { name: 'Manage tags' })).toBeVisible();
   await page.keyboard.press('Escape');
@@ -328,14 +325,14 @@ test('Mouse & drag settings control click-create and scroll-panning across reloa
   const afterScroll = await scroller.evaluate((el) => el.scrollLeft);
   expect(afterScroll).toBeGreaterThan(beforeScroll + 40);
 
-  // Dragging a bar pans instead of moving the task; clicking it opens Edit task
+  // Dragging a bar pans instead of moving the task; double-clicking it opens Edit task
   const box = (await bar.boundingBox())!;
   const barCenter: [number, number] = [box.x + box.width / 2, box.y + box.height / 2];
   await drag(page, barCenter, [barCenter[0] - 60, barCenter[1]]);
   await expect(bar).toHaveAccessibleName('Design, Nov 13 – Nov 15');
   expect(await scroller.evaluate((el) => el.scrollLeft)).toBeGreaterThan(afterScroll + 20);
 
-  await bar.click();
+  await bar.dblclick();
   await expect(page.getByRole('dialog', { name: 'Edit task' })).toBeVisible();
   await page.keyboard.press('Escape');
 
@@ -382,7 +379,7 @@ test('consecutive saves of a 32–60 KB roadmap succeed without keepalive quota 
     const saved = page.waitForResponse(
       (r) => r.url().endsWith('/api/roadmap') && r.request().method() === 'PUT' && r.ok(),
     );
-    await page.getByRole('button', { name: '+ New task' }).click();
+    await page.getByRole('button', { name: 'New task' }).click();
     const dialog = page.getByRole('dialog', { name: 'New task' });
     await dialog.getByLabel('Title').fill(title);
     await dialog.getByRole('button', { name: 'Save' }).click();
@@ -400,7 +397,7 @@ test('create and edit task dialogs expand vertically so Details shows ample text
   await page.setViewportSize({ width: 1280, height: 900 });
   await openApp(page);
 
-  await page.getByRole('button', { name: '+ New task' }).click();
+  await page.getByRole('button', { name: 'New task' }).click();
   const createDialog = page.getByRole('dialog', { name: 'New task' });
   await expect(createDialog).toBeVisible();
   const createDialogBox = (await createDialog.boundingBox())!;
@@ -412,7 +409,7 @@ test('create and edit task dialogs expand vertically so Details shows ample text
   await createDialog.getByLabel('Details').fill('Line 1\nLine 2\nLine 3\nLine 4\nLine 5\nLine 6');
   await createDialog.getByRole('button', { name: 'Save' }).click();
 
-  await page.getByRole('button', { name: 'Check details height, Nov 13' }).click();
+  await page.getByRole('button', { name: 'Check details height, Nov 13' }).dblclick();
   const editDialog = page.getByRole('dialog', { name: 'Edit task' });
   await expect(editDialog).toBeVisible();
   const editDialogBox = (await editDialog.boundingBox())!;

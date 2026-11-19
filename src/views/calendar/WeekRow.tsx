@@ -23,7 +23,7 @@ import {
   WEEK_TOP,
   type CalSpan,
 } from './layout';
-import { openTask } from '../openTask';
+import { editTask, hideHover, hoverProps, openTask } from '../openTask';
 import styles from './calendar.module.css';
 
 interface Props {
@@ -132,12 +132,16 @@ export function WeekRow({
               data-ends-here={seg.endsHere || undefined}
               style={{ ...box, ...taskColor(s.task, tags) }}
               aria-label={label}
-              title={label}
-              onPointerDown={(e) => onBarPointerDown(e, s)}
+              {...hoverProps(s.id)}
+              onPointerDown={(e) => {
+                hideHover();
+                onBarPointerDown(e, s);
+              }}
               onFocus={() => useUi.getState().select(s.id)} // so Delete works on it (NF-4)
               onClick={(e) => {
-                if (e.detail === 0) openTask(s.id); // keyboard; pointer clicks come through the drag
+                if (e.detail === 0) editTask(s.id); // keyboard; pointer clicks come through the drag
               }}
+              onDoubleClick={() => editTask(s.id)}
             >
               <span className={styles.barLabel}>{s.task.title}</span>
               {details && <span className={styles.barLabel}>{s.task.details.split('\n')[0]}</span>}

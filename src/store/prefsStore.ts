@@ -16,6 +16,8 @@ interface Prefs {
   cursor: ISODate;
   packRows: boolean;
   tagRowMode: TagRowMode;
+  /** Timeline: a header above each tag's rows (with Pack rows on, one row per tag). */
+  groupLabels: boolean;
   tagFilter: string[];
   clickCreate: boolean;
   dragBehavior: DragBehavior;
@@ -33,6 +35,7 @@ export const usePrefs = create<Prefs>()(
       cursor: todayISO(),
       packRows: true,
       tagRowMode: 'dedicated',
+      groupLabels: true,
       tagFilter: [],
       clickCreate: true,
       dragBehavior: 'task',
@@ -47,6 +50,7 @@ export const usePrefs = create<Prefs>()(
         calendarMode,
         packRows,
         tagRowMode,
+        groupLabels,
         tagFilter,
         clickCreate,
         dragBehavior,
@@ -57,6 +61,7 @@ export const usePrefs = create<Prefs>()(
         calendarMode,
         packRows,
         tagRowMode,
+        groupLabels,
         tagFilter,
         clickCreate,
         dragBehavior,

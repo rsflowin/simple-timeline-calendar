@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react';
 import { usePrefs } from '../store/prefsStore';
 import { useDoc } from '../store/roadmapStore';
+import { Icon } from './Icon';
 import { Popover } from './Popover';
 import { TagChip } from './TagChip';
 import styles from './TagFilter.module.css';
@@ -28,12 +29,16 @@ export function TagFilter() {
         ref={button}
         type="button"
         aria-expanded={anchor !== null}
-        className={count ? styles.active : undefined}
+        className={`${styles.button} ${count ? styles.active : ''}`}
+        title="Filter by tag"
+        aria-label={count ? `Tags (${count})` : 'Tags'}
         // Without this, the popover's outside-pointerdown closes it and the click reopens it.
         onPointerDown={(e) => anchor && e.stopPropagation()}
         onClick={(e) => (anchor ? close() : setAnchor(e.currentTarget.getBoundingClientRect()))}
       >
-        {count ? `Tags (${count})` : 'Tags'}
+        <Icon name="tag" />
+        <span className={styles.label}>Tags</span>
+        {count ? `(${count})` : ''}
       </button>
       {anchor && (
         <Popover anchor={anchor} label="Filter by tag" onClose={close}>

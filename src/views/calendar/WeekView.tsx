@@ -19,7 +19,7 @@ export function WeekView({ cursor, g }: { cursor: DayIndex; g: CalendarGestures 
       <div className={styles.weekdays}>
         {Array.from({ length: 7 }, (_, i) => start + i).map((d) => (
           <div key={d} className={d === today ? styles.todayHead : undefined}>
-            {formatWeekday(d)} {parts(d).date}
+            {formatWeekday(d)} <span className={styles.headDate}>{parts(d).date}</span>
           </div>
         ))}
       </div>
