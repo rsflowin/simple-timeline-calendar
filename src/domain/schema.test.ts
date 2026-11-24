@@ -36,7 +36,7 @@ describe('parseRoadmap', () => {
     expect(() => parseRoadmap(withTask({ start: '2026-02-30' }))).toThrow('tasks[0].start');
     expect(() => parseRoadmap(withTask({ title: '  ' }))).toThrow('tasks[0].title is empty');
     expect(() => parseRoadmap(withTask({ id: 5 }))).toThrow('tasks[0].id must be text');
-    expect(() => parseRoadmap(file({ tags: [{ id: 'g', name: 'A', color: 'teal' }] }))).toThrow(
+    expect(() => parseRoadmap(file({ tags: [{ id: 'g', name: 'A', color: 'mauve' }] }))).toThrow(
       'tags[0].color',
     );
   });

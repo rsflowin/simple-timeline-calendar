@@ -1,5 +1,5 @@
 .dialog {
-  width: min(600px, calc(100vw - 32px));
+  width: min(660px, calc(100vw - 32px));
   padding: 0;
   border: 1px solid var(--color-border);
   border-radius: 10px;
@@ -50,6 +50,7 @@
 
 .swatches {
   display: flex;
+  flex-wrap: wrap;
   gap: 3px;
 }
 

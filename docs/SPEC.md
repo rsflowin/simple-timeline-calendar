@@ -78,7 +78,7 @@ multi-user real-time sync, accounts.
 |---|---|---|
 | `id` | string | UUID |
 | `name` | string | Required, unique case-insensitively, 1–50 chars |
-| `color` | `TagColor` | One of: `gray`, `brown`, `orange`, `yellow`, `green`, `blue`, `purple`, `pink`, `red` |
+| `color` | `TagColor` | One of: `gray`, `brown`, `orange`, `yellow`, `green`, `blue`, `purple`, `pink`, `red`, `teal`, `indigo`, `lime`, `magenta`, `cyan`, `olive` |
 
 A task bar is drawn in the colour of its **first** tag, or neutral grey with no
 tags.
