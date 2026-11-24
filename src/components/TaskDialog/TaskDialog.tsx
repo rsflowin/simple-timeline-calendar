@@ -1,10 +1,11 @@
 import { useEffect, useId, useRef, useState, type FormEvent, type KeyboardEvent } from 'react';
-import { isValidISODate } from '../../domain/dates';
+import { formatFullDate, isValidISODate, toDayIndex } from '../../domain/dates';
 import { addTask, deleteTask, updateTask, type TaskInput } from '../../domain/doc';
 import { LIMITS, type RoadmapDoc } from '../../domain/types';
 import { flushAutosave } from '../../storage/autosave';
 import { useDoc, useRoadmap } from '../../store/roadmapStore';
 import { useUi } from '../../store/uiStore';
+import { Icon } from '../Icon';
 import { TagInput } from '../TagInput/TagInput';
 import styles from './TaskDialog.module.css';
 
@@ -120,27 +121,17 @@ function TaskForm({
         />
       </label>
       <div className={styles.dates}>
-        <label className={styles.field}>
-          <span className={styles.label}>Start</span>
-          <input
-            type="date"
-            value={form.start}
-            onChange={(e) => {
-              const start = e.target.value;
-              set(start > form.end ? { start, end: start } : { start }); // TD-3
-            }}
-          />
-        </label>
-        <label className={styles.field}>
-          <span className={styles.label}>End</span>
-          <input
-            type="date"
-            value={form.end}
-            aria-invalid={endBeforeStart}
-            aria-describedby={endBeforeStart ? `${fieldId}-end` : undefined}
-            onChange={(e) => set({ end: e.target.value })}
-          />
-        </label>
+        <DateField
+          label="Start"
+          value={form.start}
+          onChange={(start) => set(start > form.end ? { start, end: start } : { start })} // TD-3
+        />
+        <DateField
+          label="End"
+          value={form.end}
+          errorId={endBeforeStart ? `${fieldId}-end` : undefined}
+          onChange={(end) => set({ end })}
+        />
       </div>
       {endBeforeStart && (
         <p id={`${fieldId}-end`} className={styles.error}>
@@ -196,5 +187,49 @@ function TaskForm({
         </button>
       </footer>
     </form>
+  );
+}
+
+/**
+ * A native date input dressed to show the date the way the rest of the app does
+ * (`Sun, Nov 15, 2026`) instead of the browser's locale format. Clicking opens the picker;
+ * typing still edits the (invisible) input.
+ */
+function DateField({
+  label,
+  value,
+  errorId,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  errorId?: string;
+  onChange(value: string): void;
+}) {
+  return (
+    <label className={styles.field}>
+      <span className={styles.label}>{label}</span>
+      <span className={styles.date} data-invalid={errorId ? '' : undefined}>
+        <span aria-hidden="true">
+          {isValidISODate(value) ? formatFullDate(toDayIndex(value)) : 'Pick a date'}
+        </span>
+        <Icon name="calendar" />
+        <input
+          type="date"
+          value={value}
+          aria-label={label}
+          aria-invalid={errorId !== undefined}
+          aria-describedby={errorId}
+          onClick={(e) => {
+            try {
+              e.currentTarget.showPicker?.();
+            } catch {
+              // not allowed here (e.g. no user activation): the input still takes typing
+            }
+          }}
+          onChange={(e) => onChange(e.target.value)}
+        />
+      </span>
+    </label>
   );
 }

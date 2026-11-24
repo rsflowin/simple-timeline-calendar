@@ -25,7 +25,7 @@
 
 .head {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   gap: 8px;
 }
 
@@ -35,9 +35,21 @@
 }
 
 .close {
+  display: inline-flex;
   margin-left: auto;
+  padding: 4px;
   border-color: transparent;
   background: transparent;
+  color: var(--color-text-muted);
+}
+
+.edit {
+  align-self: center;
+  margin-left: auto;
+}
+
+.edit + .close {
+  margin-left: 0;
 }
 
 .muted {
@@ -75,11 +87,16 @@
   color: inherit;
   font-weight: 600;
   text-align: left;
+  font-size: 14px;
   white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+button.title {
   cursor: pointer;
 }
 
-.title:hover {
+button.title:hover {
   text-decoration: underline;
 }
 

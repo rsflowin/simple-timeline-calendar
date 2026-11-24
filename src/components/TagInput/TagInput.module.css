@@ -18,6 +18,25 @@
   outline-offset: 1px;
 }
 
+.chip {
+  display: inline-flex;
+  max-width: 100%;
+  border-radius: 4px;
+}
+
+.chip[draggable='true'] {
+  cursor: grab;
+}
+
+.chip[data-dragging='true'] {
+  opacity: 0.4;
+}
+
+.chip:focus-visible {
+  outline: 2px solid var(--color-selection);
+  outline-offset: 1px;
+}
+
 .input {
   flex: 1;
   min-width: 80px;

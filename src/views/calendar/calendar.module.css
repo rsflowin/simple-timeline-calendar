@@ -86,9 +86,24 @@
 
 /* Week view */
 
+/* Today: the same red date pill in every view (Month cell, Week header, Year, Timeline day) */
+.headDate {
+  display: inline-block;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 4px;
+  border-radius: 10px;
+  line-height: 20px;
+  text-align: center;
+}
+
 .weekdays .todayHead {
-  color: var(--color-today-line);
   font-weight: 600;
+}
+
+.todayHead .headDate {
+  background: var(--color-today-line);
+  color: var(--color-on-accent);
 }
 
 .weekBody {
@@ -300,13 +315,10 @@
 }
 
 .miniDay.today {
-  outline: 2px solid var(--color-today-line);
-  outline-offset: 1px;
-}
-
-/* the focus ring on today: same place, focus colour */
-.miniDay.today:focus-visible {
-  outline-color: var(--color-selection);
+  border-radius: 11px;
+  background: var(--color-today-line);
+  color: var(--color-on-accent);
+  font-weight: 600;
 }
 
 .dayHead {

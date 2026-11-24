@@ -9,6 +9,12 @@ export const TAG_COLORS = [
   'pink',
   'red',
   'yellow',
+  'teal',
+  'indigo',
+  'lime',
+  'magenta',
+  'cyan',
+  'olive',
   'brown',
   'gray',
 ] as const;

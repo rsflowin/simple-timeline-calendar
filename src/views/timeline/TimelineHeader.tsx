@@ -6,10 +6,12 @@ interface Props {
   bottom: HeaderCell[];
   from: number;
   px: number;
+  /** Day zoom: today's cell gets the same red date pill as the calendar. */
+  today?: number;
 }
 
 /** Two sticky header rows; cells are absolutely placed on the timeline's scale. */
-export function TimelineHeader({ top, bottom, from, px }: Props) {
+export function TimelineHeader({ top, bottom, from, px, today }: Props) {
   const place = (c: HeaderCell) => ({ left: (c.start - from) * px, width: c.days * px });
   return (
     <div className={styles.header}>
@@ -23,7 +25,7 @@ export function TimelineHeader({ top, bottom, from, px }: Props) {
       <div className={styles.headerRow}>
         {bottom.map((c) => (
           <div key={c.key} className={styles.cell} style={place(c)}>
-            {c.label}
+            {c.start === today ? <span className={styles.todayDate}>{c.label}</span> : c.label}
           </div>
         ))}
       </div>

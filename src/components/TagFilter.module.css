@@ -1,3 +1,20 @@
+.button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Narrow windows: icon (and count) only, so the toolbar stays on one line */
+@media (max-width: 1100px) {
+  .label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+}
+
 .active {
   border-color: var(--color-selection);
   background: var(--color-accent-bg);

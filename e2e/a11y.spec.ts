@@ -45,10 +45,6 @@ test('axe: no serious or critical violations', async ({ page }) => {
   await page.getByRole('button', { name: 'Menu' }).click();
   await expect(page.getByRole('dialog', { name: 'Menu' })).toBeVisible();
   await expectNoSeriousViolations(page, 'Menu');
-  await page.getByRole('button', { name: /Tag display/ }).click();
-  await expect(page.getByRole('radiogroup', { name: 'Tag display' })).toBeVisible();
-  await expectNoSeriousViolations(page, 'Menu Tag display');
-  await page.keyboard.press('Escape');
   await page.getByRole('button', { name: /Mouse & drag/ }).click();
   await expect(page.getByRole('radiogroup', { name: 'Drag and drop' })).toBeVisible();
   await expectNoSeriousViolations(page, 'Menu Mouse & drag');
@@ -56,6 +52,21 @@ test('axe: no serious or critical violations', async ({ page }) => {
   await page.getByRole('button', { name: 'Manage tags' }).click();
   await expect(page.getByRole('dialog', { name: 'Manage tags' })).toBeVisible();
   await expectNoSeriousViolations(page, 'Manage tags');
+  await page.keyboard.press('Escape');
+
+  await page.getByRole('button', { name: 'Display' }).click();
+  await expect(page.getByRole('radiogroup', { name: 'Tag rows' })).toBeVisible();
+  await expectNoSeriousViolations(page, 'Display');
+  await page.keyboard.press('Escape');
+
+  await page.getByRole('button', { name: 'Task blue, Nov 2 – Nov 4' }).click();
+  await expect(page.getByRole('complementary', { name: 'Task preview' })).toBeVisible();
+  await expectNoSeriousViolations(page, 'Task preview');
+  await page.keyboard.press('Escape');
+
+  await page.keyboard.press('Shift+?');
+  await expect(page.getByRole('dialog', { name: 'Keyboard shortcuts' })).toBeVisible();
+  await expectNoSeriousViolations(page, 'Keyboard shortcuts');
   await page.keyboard.press('Escape');
 
   await page.getByRole('button', { name: 'Calendar' }).click();
@@ -80,7 +91,7 @@ test('keyboard: Tab reaches a bar, Enter opens it, Delete deletes it', async ({ 
   await expect(bar).toBeFocused();
 
   // still selected, but Delete from the toolbar must not delete it
-  await page.getByRole('button', { name: 'Pack rows' }).focus();
+  await page.getByRole('button', { name: 'Agenda' }).focus();
   await page.keyboard.press('Delete');
   await expect(bar).toHaveCount(1);
 

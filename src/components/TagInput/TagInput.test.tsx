@@ -103,6 +103,25 @@ describe('TagInput', () => {
     expect(selected).toEqual(['d']);
   });
 
+  it('←/→ on a focused chip reorders it and keeps focus', async () => {
+    render(<Harness initial={['d', 'v', 'm']} />);
+    const chip = screen.getByLabelText('Marketing, 3 of 3');
+    chip.focus();
+    await userEvent.keyboard('{ArrowLeft}{ArrowLeft}');
+    expect(selected).toEqual(['m', 'd', 'v']);
+    expect(screen.getByLabelText('Marketing, 1 of 3')).toHaveFocus();
+    await userEvent.keyboard('{ArrowLeft}'); // already first: no change
+    expect(selected).toEqual(['m', 'd', 'v']);
+  });
+
+  it('dragging a chip onto another takes its place', () => {
+    render(<Harness initial={['d', 'v', 'm']} />);
+    fireEvent.dragStart(screen.getByLabelText('Design, 1 of 3'));
+    fireEvent.dragOver(screen.getByLabelText('Marketing, 3 of 3'));
+    fireEvent.drop(screen.getByLabelText('Marketing, 3 of 3'));
+    expect(selected).toEqual(['v', 'm', 'd']);
+  });
+
   it('× removes a chip', async () => {
     render(<Harness initial={['d', 'v']} />);
     await userEvent.click(screen.getByRole('button', { name: 'Remove Design' }));

@@ -109,7 +109,7 @@ describe('CalendarView — +N more (CAL-4)', () => {
       unobserve() {}
       disconnect() {}
     } as unknown as typeof ResizeObserver;
-    useUi.setState({ quickCreate: null, editing: null, selectedId: null });
+    useUi.setState({ quickCreate: null, editing: null, selectedId: null, peekId: null });
     usePrefs.setState({
       calendarMode: 'month',
       cursor: '2026-11-13',
@@ -165,7 +165,7 @@ describe('CalendarView — gestures', () => {
   beforeEach(() => {
     document.elementsFromPoint = (x: number) => [...document.querySelectorAll(`[data-day="${x}"]`)];
     useRoadmap.getState().reset({ tags: [], tasks: [task('a', '2026-11-05', '2026-11-06')] });
-    useUi.setState({ quickCreate: null, editing: null, selectedId: null });
+    useUi.setState({ quickCreate: null, editing: null, selectedId: null, peekId: null });
     usePrefs.setState({
       calendarMode: 'month',
       cursor: '2026-11-13',
@@ -228,11 +228,13 @@ describe('CalendarView — gestures', () => {
     expect(bars('a')[1]).toHaveAccessibleName('Task a, Nov 5 – Nov 10');
   });
 
-  it('a click on a bar selects it and opens the Task dialog', () => {
+  it('a click on a bar selects it and previews it; a double-click opens the Task dialog', () => {
     render(<CalendarView />);
     fireEvent.pointerDown(bars('a')[0], { button: 0, ...at('2026-11-05') });
     win('pointerup', '2026-11-05');
-    expect(useUi.getState()).toMatchObject({ selectedId: 'a', editing: { mode: 'edit', id: 'a' } });
+    expect(useUi.getState()).toMatchObject({ selectedId: 'a', peekId: 'a', editing: null });
+    fireEvent.doubleClick(bars('a')[0]);
+    expect(useUi.getState().editing).toEqual({ mode: 'edit', id: 'a' });
   });
 
   it('respects clickCreate=false while keeping drag-create in task mode', () => {
@@ -271,7 +273,7 @@ describe('CalendarView — gestures', () => {
 
     fireEvent.pointerDown(bar, { button: 0, ...at('2026-11-05') });
     win('pointerup', '2026-11-05');
-    expect(useUi.getState()).toMatchObject({ selectedId: 'a', editing: { mode: 'edit', id: 'a' } });
+    expect(useUi.getState()).toMatchObject({ selectedId: 'a', peekId: 'a', editing: null });
   });
 
   it('pans the calendar scroll container when dragBehavior=scroll', () => {
@@ -314,8 +316,9 @@ describe('CalendarView — week', () => {
     useRoadmap.getState().reset({ tags: [], tasks: [t] });
     const { container } = render(<CalendarView />);
     expect(container.querySelectorAll('[data-day]')).toHaveLength(7);
-    expect(screen.getByText('Mon 9')).toBeInTheDocument();
-    expect(screen.getByText('Sun 15')).toBeInTheDocument();
+    const heads = container.querySelectorAll('[class*="weekdays"] > div');
+    expect(heads[0]).toHaveTextContent('Mon 9');
+    expect(heads[6]).toHaveTextContent('Sun 15');
     expect(bars('a')[0]).toHaveTextContent(/^Task aFirst line$/);
   });
 
@@ -340,7 +343,7 @@ describe('CalendarView — week', () => {
 
 describe('CalendarView — year', () => {
   beforeEach(() => {
-    useUi.setState({ quickCreate: null, editing: null, selectedId: null });
+    useUi.setState({ quickCreate: null, editing: null, selectedId: null, peekId: null });
     usePrefs.setState({
       calendarMode: 'year',
       cursor: '2026-11-13',

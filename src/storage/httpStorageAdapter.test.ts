@@ -129,7 +129,9 @@ describe('httpStorageAdapter', () => {
       '*',
     );
 
-    resolveFirst(new Response('{"revision":"\\"r1\\""}', { status: 200, headers: { ETag: '"r1"' } }));
+    resolveFirst(
+      new Response('{"revision":"\\"r1\\""}', { status: 200, headers: { ETag: '"r1"' } }),
+    );
     await Promise.all([p1, p2]);
 
     expect(fetchMock).toHaveBeenCalledTimes(2);

@@ -2,6 +2,7 @@ import type { PointerEvent } from 'react';
 import { formatRange } from '../../domain/dates';
 import type { TaskSpan } from '../../domain/spans';
 import { useUi } from '../../store/uiStore';
+import { editTask, hideHover, hoverProps } from '../openTask';
 import styles from './timeline.module.css';
 
 interface Props {
@@ -15,8 +16,6 @@ interface Props {
   /** Shown under the bar while it's dragged (TL-16). */
   tip?: string;
   onPointerDown(e: PointerEvent<HTMLButtonElement>): void;
-  /** Keyboard activation; pointer clicks come through the drag (TL-15). */
-  onOpen(): void;
 }
 
 export function TaskBar({
@@ -28,7 +27,7 @@ export function TaskBar({
   selected,
   canDrag = true,
   tip,
-  ...on
+  onPointerDown,
 }: Props) {
   const label = `${span.task.title}, ${formatRange(span.start, span.end)}`;
   const cls = [styles.bar, selected && styles.selected, tip && styles.dragging];
@@ -38,13 +37,18 @@ export function TaskBar({
       className={cls.filter(Boolean).join(' ')}
       style={{ left, width, top, ...color }}
       aria-label={label}
-      title={tip ? undefined : label}
-      onPointerDown={on.onPointerDown}
+      {...hoverProps(span.id)}
+      onPointerDown={(e) => {
+        hideHover();
+        onPointerDown(e);
+      }}
       // a focused bar is the selected one, so Delete works on it (NF-4)
       onFocus={() => useUi.getState().select(span.id)}
+      // Enter / Space edits; pointer clicks come through the drag and open the peek (TL-15)
       onClick={(e) => {
-        if (e.detail === 0) on.onOpen();
+        if (e.detail === 0) editTask(span.id);
       }}
+      onDoubleClick={() => editTask(span.id)}
     >
       <span className={styles.barLabel}>{span.task.title}</span>
       {canDrag && (

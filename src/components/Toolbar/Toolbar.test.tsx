@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { render, screen, within } from '@testing-library/react';
+import { act, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { todayISO } from '../../domain/dates';
@@ -9,6 +9,7 @@ import { downloadText, pickTextFile } from '../../storage/fileTransfer';
 import { usePrefs } from '../../store/prefsStore';
 import { useRoadmap } from '../../store/roadmapStore';
 import { useStatus } from '../../store/statusStore';
+import { useUi } from '../../store/uiStore';
 import { StatusBanner } from '../StatusBanner';
 import { Toolbar } from './Toolbar';
 
@@ -36,7 +37,7 @@ async function chooseFromMenu(item: RegExp) {
   const user = userEvent.setup();
   render(
     <>
-      <Toolbar onToday={() => {}} />
+      <Toolbar onToday={() => {}} onStep={() => {}} />
       <StatusBanner />
     </>,
   );
@@ -170,10 +171,9 @@ describe('Toolbar menu', () => {
     expect(present().tags.map((t) => t.name)).toEqual(['Growth']);
   });
 
-  it('Menu lists Manage tags, Tag display, Mouse & drag, Export…, Import… in order and removes Preferences button', async () => {
-    usePrefs.setState({ packRows: true, tagRowMode: 'dedicated' });
+  it('Menu lists Manage tags, Mouse & drag, Keyboard shortcuts, Export…, Import… in order', async () => {
     const user = userEvent.setup();
-    render(<Toolbar onToday={() => {}} />);
+    render(<Toolbar onToday={() => {}} onStep={() => {}} />);
 
     expect(screen.queryByRole('button', { name: 'Preferences' })).toBeNull();
     await user.click(screen.getByRole('button', { name: 'Menu' }));
@@ -182,28 +182,51 @@ describe('Toolbar menu', () => {
     const labels = [...menuDialog.querySelectorAll('button')].map(
       (b) => b.firstElementChild?.textContent,
     );
-    expect(labels).toEqual(['Manage tags', 'Tag display', 'Mouse & drag', 'Export…', 'Import…']);
+    expect(labels).toEqual([
+      'Manage tags',
+      'Mouse & drag',
+      'Keyboard shortcuts',
+      'Export…',
+      'Import…',
+    ]);
 
-    await user.click(screen.getByRole('button', { name: /Tag display/ }));
-    const dedicated = screen.getByRole('radio', { name: /Dedicated lines per tag/ });
-    const compact = screen.getByRole('radio', { name: /Tag-first compact packing/ });
-    expect(dedicated).toBeChecked();
-    expect(compact).not.toBeChecked();
+    await user.click(screen.getByRole('button', { name: /Keyboard shortcuts/ }));
+    expect(useUi.getState().shortcutsOpen).toBe(true);
+    useUi.setState({ shortcutsOpen: false });
 
-    await user.click(compact);
-    expect(usePrefs.getState().tagRowMode).toBe('compact');
-    expect(compact).toBeChecked();
-
-    await user.keyboard('{Escape}');
-    expect(screen.getByRole('button', { name: /Tag display/ })).toHaveTextContent('Compact');
-
+    await user.click(screen.getByRole('button', { name: 'Menu' }));
     await user.click(screen.getByRole('button', { name: 'Manage tags' }));
     expect(screen.getByRole('dialog', { name: 'Manage tags' })).toBeInTheDocument();
   });
 
+  it('Display sets Pack rows, tag rows and tag headers', async () => {
+    usePrefs.setState({ packRows: true, tagRowMode: 'dedicated', groupLabels: true });
+    const user = userEvent.setup();
+    render(<Toolbar onToday={() => {}} onStep={() => {}} />);
+
+    await user.click(screen.getByRole('button', { name: 'Display' }));
+    const perTag = screen.getByRole('radio', { name: /One row per tag/ });
+    const together = screen.getByRole('radio', { name: /Pack tags together/ });
+    const headers = screen.getByRole('checkbox', { name: /Show tag headers/ });
+    expect(perTag).toBeChecked();
+    expect(headers).toBeChecked();
+    expect(headers).toBeEnabled();
+
+    await user.click(headers);
+    expect(usePrefs.getState().groupLabels).toBe(false);
+    await user.click(together);
+    expect(usePrefs.getState().tagRowMode).toBe('compact');
+    expect(headers).toBeDisabled();
+
+    await user.click(screen.getByRole('checkbox', { name: /Pack rows/ }));
+    expect(usePrefs.getState().packRows).toBe(false);
+    expect(perTag).toBeDisabled();
+    expect(screen.getByText('Tag headers need Pack rows and One row per tag.')).toBeInTheDocument();
+  });
+
   it('configures click-to-create and drag behavior in Mouse & drag submenu', async () => {
     const user = userEvent.setup();
-    render(<Toolbar onToday={() => {}} />);
+    render(<Toolbar onToday={() => {}} onStep={() => {}} />);
 
     await user.click(screen.getByRole('button', { name: 'Menu' }));
     expect(screen.getByRole('button', { name: /Mouse & drag/ })).toHaveTextContent('Tasks');
@@ -236,13 +259,21 @@ describe('Toolbar menu', () => {
     expect(screen.getByRole('button', { name: /Mouse & drag/ })).toHaveTextContent('Off');
   });
 
-  it('shows a hint in Tag display submenu when Pack rows is off', async () => {
-    usePrefs.setState({ packRows: false, tagRowMode: 'dedicated' });
+  it('‹ Today › step and jump, and the title follows the view', async () => {
+    const steps: number[] = [];
+    let today = 0;
+    usePrefs.setState({ view: 'timeline' });
+    useUi.setState({ timelineTitle: 'November 2026' });
     const user = userEvent.setup();
-    render(<Toolbar onToday={() => {}} />);
-
-    await user.click(screen.getByRole('button', { name: 'Menu' }));
-    await user.click(screen.getByRole('button', { name: /Tag display/ }));
-    expect(screen.getByText('Applies when Pack rows is enabled.')).toBeInTheDocument();
+    render(<Toolbar onToday={() => today++} onStep={(d) => steps.push(d)} />);
+    expect(screen.getByText('November 2026')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Previous period' }));
+    await user.click(screen.getByRole('button', { name: 'Next period' }));
+    await user.click(screen.getByRole('button', { name: 'Today' }));
+    expect(steps).toEqual([-1, 1]);
+    expect(today).toBe(1);
+    act(() => usePrefs.setState({ view: 'calendar', calendarMode: 'year', cursor: '2026-11-13' }));
+    expect(screen.getByRole('button', { name: 'Next year' })).toBeInTheDocument();
+    expect(screen.getByText('2026')).toBeInTheDocument();
   });
 });
