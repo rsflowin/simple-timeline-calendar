@@ -7,6 +7,7 @@ import {
   isValidISODate,
   monthStart,
   nextMonthStart,
+  parseDateInput,
   startOfWeek,
   toDayIndex as d,
   todayISO,
@@ -65,5 +66,17 @@ describe('dates', () => {
     expect(formatMonthYear(d('2026-01-15'))).toBe('Jan 2026');
     expect(formatRange(d('2026-01-03'), d('2026-01-09'))).toBe('Jan 3 – Jan 9');
     expect(formatRange(d('2026-01-03'), d('2026-01-03'))).toBe('Jan 3');
+  });
+});
+
+describe('parseDateInput', () => {
+  it('accepts typed dates in common shapes and rejects the rest', () => {
+    expect(parseDateInput('2026-11-5')).toBe('2026-11-05');
+    expect(parseDateInput(' 2026/11/05 ')).toBe('2026-11-05');
+    expect(parseDateInput('2026.1.31')).toBe('2026-01-31');
+    expect(parseDateInput('20261105')).toBe('2026-11-05');
+    expect(parseDateInput('2026-02-30')).toBeNull();
+    expect(parseDateInput('2026-11-')).toBeNull();
+    expect(parseDateInput('Nov 5')).toBeNull();
   });
 });

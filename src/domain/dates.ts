@@ -29,6 +29,14 @@ export function isValidISODate(value: unknown): value is ISODate {
   );
 }
 
+/** A typed date — `2026-11-5`, `2026/11/05`, `2026.11.05` or `20261105` — as an ISO date, or null. */
+export function parseDateInput(text: string): ISODate | null {
+  const m = /^(\d{4})[-/.]?(\d{1,2})[-/.]?(\d{1,2})$/.exec(text.trim());
+  if (!m) return null;
+  const iso = `${m[1]}-${m[2].padStart(2, '0')}-${m[3].padStart(2, '0')}`;
+  return isValidISODate(iso) ? iso : null;
+}
+
 /** Today in the user's local time zone — the only place that reads the clock's zone. */
 export function todayISO(now = new Date()): ISODate {
   const pad = (n: number) => String(n).padStart(2, '0');

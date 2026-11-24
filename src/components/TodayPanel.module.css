@@ -43,15 +43,6 @@
   color: var(--color-text-muted);
 }
 
-.edit {
-  align-self: center;
-  margin-left: auto;
-}
-
-.edit + .close {
-  margin-left: 0;
-}
-
 .muted {
   color: var(--color-text-muted);
   font-size: 12px;

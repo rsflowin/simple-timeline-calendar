@@ -20,6 +20,7 @@
   gap: 12px;
   min-height: 100%;
   padding: 20px;
+  container-type: inline-size;
 }
 
 .form > * {
@@ -90,22 +91,27 @@
   background: var(--color-selection-hover);
 }
 
+/* Narrow (the side peek): one date per row. */
+@container (max-width: 340px) {
+  .dates {
+    grid-template-columns: 1fr;
+  }
+}
+
+.inline {
+  flex: 1;
+  padding: 0;
+}
+
 .date {
-  position: relative;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  padding: 5px 8px;
+  gap: 6px;
+  padding: 0 4px 0 0;
   border: 1px solid var(--color-border);
   border-radius: 6px;
   background: var(--color-surface);
   color: var(--color-text);
-  cursor: pointer;
-}
-
-.date:hover {
-  background: var(--color-hover);
 }
 
 .date:has(input:focus-visible) {
@@ -117,15 +123,38 @@
   border-color: var(--color-danger);
 }
 
-.date svg {
+.date > input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  font-variant-numeric: tabular-nums;
+}
+
+.weekday {
+  color: var(--color-text-muted);
+  font-size: 13px;
+}
+
+/* calendar button: the native date input sits invisibly on top of the icon and opens its picker */
+.pick {
+  position: relative;
+  display: inline-flex;
+  padding: 4px;
+  border-radius: 4px;
   color: var(--color-text-muted);
 }
 
-/* covers the field so clicks and typing reach it; the text above shows its value */
-.date input {
+.pick:hover {
+  background: var(--color-hover);
+}
+
+.pick input {
   position: absolute;
   inset: 0;
   width: 100%;
+  padding: 0;
   opacity: 0;
   cursor: pointer;
 }
