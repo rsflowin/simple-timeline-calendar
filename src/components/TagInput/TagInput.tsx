@@ -105,6 +105,8 @@ export function TagInput({ value, onChange, id }: TagInputProps) {
                 className={styles.chip}
                 data-dragging={dragId === tagId || undefined}
                 tabIndex={sortable ? 0 : undefined}
+                // A plain span's aria-label is ignored; a group is announced and may hold the × button.
+                role={sortable ? 'group' : undefined}
                 aria-label={sortable ? `${tag.name}, ${i + 1} of ${value.length}` : undefined}
                 title={
                   sortable
@@ -128,7 +130,8 @@ export function TagInput({ value, onChange, id }: TagInputProps) {
                 onDragEnd={() => setDragId(null)}
                 onKeyDown={(e) => {
                   if (e.target !== e.currentTarget) return; // not from the × button
-                  const to = e.key === 'ArrowLeft' ? i - 1 : e.key === 'ArrowRight' ? i + 1 : -1;
+                  if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+                  const to = e.key === 'ArrowLeft' ? i - 1 : i + 1;
                   if (to < 0 || to >= value.length) return;
                   e.preventDefault();
                   focusId.current = tagId;
