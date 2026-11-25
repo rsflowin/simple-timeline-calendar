@@ -74,6 +74,14 @@ describe('TaskDialog', () => {
     expect(save()).toBeDisabled();
   });
 
+  it('does not save while a date holds half-typed text', async () => {
+    openWith(() => useUi.getState().openNew({ start: '2026-01-05', end: '2026-01-06' }));
+    await userEvent.type(screen.getByLabelText('Title'), 'Plan');
+    await userEvent.type(screen.getByLabelText('End'), 'x{Enter}');
+    expect(screen.getByLabelText('End')).toHaveAttribute('aria-invalid', 'true');
+    expect(useRoadmap.getState().history.present.tasks).toHaveLength(0);
+  });
+
   it('prefills an existing task and updates it as one undo step', async () => {
     useRoadmap.getState().reset(addTask(EMPTY_DOC, existing, 't1'));
     openWith(() => useUi.getState().openEdit('t1'));

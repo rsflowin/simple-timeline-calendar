@@ -81,7 +81,7 @@ export default function App() {
         <main className={styles.body}>
           {view === 'timeline' ? <TimelineView ref={timeline} /> : <CalendarView ref={calendar} />}
         </main>
-        {peekId ? <TaskPeek id={peekId} /> : agendaOpen && <TodayPanel />}
+        {peekId ? <TaskPeek id={peekId} onDeleted={focusView} /> : agendaOpen && <TodayPanel />}
       </div>
       <TaskDialog onDeleted={focusView} />
       <QuickCreate />

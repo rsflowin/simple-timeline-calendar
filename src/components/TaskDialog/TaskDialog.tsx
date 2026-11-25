@@ -1,5 +1,13 @@
-import { useEffect, useId, useRef, useState, type FormEvent, type KeyboardEvent } from 'react';
-import { formatFullDate, isValidISODate, toDayIndex } from '../../domain/dates';
+import {
+  useEffect,
+  useId,
+  useRef,
+  useState,
+  type FormEvent,
+  type KeyboardEvent,
+  type ReactNode,
+} from 'react';
+import { formatWeekday, isValidISODate, parseDateInput, toDayIndex } from '../../domain/dates';
 import { addTask, deleteTask, updateTask, type TaskInput } from '../../domain/doc';
 import { LIMITS, type RoadmapDoc } from '../../domain/types';
 import { flushAutosave } from '../../storage/autosave';
@@ -42,37 +50,45 @@ export function TaskDialog({ onDeleted }: { onDeleted?(): void }) {
   return (
     <dialog ref={ref} className={styles.dialog} aria-label={label} onClose={close}>
       {initial && (
-        <TaskForm
-          key={editId ?? 'new'}
-          id={editId}
-          initial={initial}
-          label={label}
-          onDeleted={onDeleted}
-        />
+        <TaskForm key={editId ?? 'new'} id={editId} initial={initial} onDeleted={onDeleted}>
+          <h2 className={styles.heading}>{label}</h2>
+        </TaskForm>
       )}
     </dialog>
   );
 }
 
-function TaskForm({
+/** The task fields with Save / Cancel / Delete. The dialog uses it; so does the side peek
+ * (`inline`: no autofocus, so a click on a bar doesn't pull focus out of the view). */
+export function TaskForm({
   id,
   initial,
-  label,
+  inline,
+  children,
+  onClose,
   onDeleted,
 }: {
   id?: string;
   initial: TaskInput;
-  label: string;
+  inline?: boolean;
+  /** Header, above the fields. */
+  children?: ReactNode;
+  /** After Save, Cancel or Delete. Defaults to closing the dialog. */
+  onClose?(): void;
   onDeleted?(): void;
 }) {
   const commit = useRoadmap((s) => s.commit);
-  const close = useUi((s) => s.close);
-  const [form, setForm] = useState(initial);
+  const closeDialog = useUi((s) => s.close);
+  const close = onClose ?? closeDialog;
+  // only the fields the user changed: the rest follow `initial`, so a drag or undo underneath
+  // shows up here and Save never writes those fields back stale
+  const [patch, setPatch] = useState<Partial<TaskInput>>({});
+  const form = { ...initial, ...patch };
   const [error, setError] = useState<string | null>(null);
   const fieldId = useId();
 
-  const set = (patch: Partial<TaskInput>) => {
-    setForm((f) => ({ ...f, ...patch }));
+  const set = (p: Partial<TaskInput>) => {
+    setPatch((x) => ({ ...x, ...p }));
     setError(null);
   };
   const endBeforeStart = isValidISODate(form.end) && form.end < form.start;
@@ -82,7 +98,27 @@ function TaskForm({
     isValidISODate(form.end) &&
     !endBeforeStart;
 
+  // Inline (side peek): leaving the panel — another task, Esc, ✕ — keeps valid edits.
+  // Save, Cancel and Delete clear this first.
+  const saveOnLeave = useRef<(() => void) | null>(null);
+  const changed = JSON.stringify(form) !== JSON.stringify(initial);
+  useEffect(() => {
+    saveOnLeave.current =
+      inline && id !== undefined && changed && canSave
+        ? () => commit((d) => (d.tasks.some((t) => t.id === id) ? updateTask(d, id, form) : d))
+        : null;
+  });
+  useEffect(
+    () => () => {
+      if (!saveOnLeave.current) return;
+      saveOnLeave.current();
+      flushAutosave();
+    },
+    [],
+  );
+
   const run = (update: (doc: RoadmapDoc) => RoadmapDoc) => {
+    saveOnLeave.current = null;
     try {
       commit(update);
       flushAutosave();
@@ -93,28 +129,34 @@ function TaskForm({
       return false;
     }
   };
-  const save = () => {
-    if (canSave) run((d) => (id === undefined ? addTask(d, form) : updateTask(d, id, form)));
+  // a date field still holding half-typed text marks itself aria-invalid; don't save the stale date
+  const save = (el: HTMLFormElement) => {
+    if (canSave && !el.querySelector('[aria-invalid="true"]'))
+      run((d) => (id === undefined ? addTask(d, form) : updateTask(d, id, form)));
   };
-  const onSubmit = (e: FormEvent) => {
+  const onSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    save();
+    save(e.currentTarget);
   };
-  const onKeyDown = (e: KeyboardEvent) => {
+  const onKeyDown = (e: KeyboardEvent<HTMLFormElement>) => {
     if (e.nativeEvent.isComposing || e.keyCode === 229) return;
     if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
       e.preventDefault();
-      save();
+      save(e.currentTarget);
     }
   };
 
   return (
-    <form className={styles.form} onSubmit={onSubmit} onKeyDown={onKeyDown}>
-      <h2 className={styles.heading}>{label}</h2>
+    <form
+      className={inline ? `${styles.form} ${styles.inline}` : styles.form}
+      onSubmit={onSubmit}
+      onKeyDown={onKeyDown}
+    >
+      {children}
       <label className={styles.field}>
         <span className={styles.label}>Title</span>
         <input
-          autoFocus
+          autoFocus={!inline}
           maxLength={LIMITS.title}
           value={form.title}
           onChange={(e) => set({ title: e.target.value })}
@@ -168,10 +210,10 @@ function TaskForm({
             type="button"
             className={styles.delete}
             onClick={(e) => {
-              const dialog = e.currentTarget.closest('dialog')!;
+              const dialog = e.currentTarget.closest('dialog');
               if (!run((d) => deleteTask(d, id))) return;
               useUi.getState().select(null);
-              dialog.close(); // now, not on re-render: a modal dialog won't let focus leave it
+              dialog?.close(); // now, not on re-render: a modal dialog won't let focus leave it
               onDeleted?.();
             }}
           >
@@ -179,7 +221,13 @@ function TaskForm({
           </button>
         )}
         <span className={styles.spacer} />
-        <button type="button" onClick={close}>
+        <button
+          type="button"
+          onClick={() => {
+            saveOnLeave.current = null;
+            close();
+          }}
+        >
           Cancel
         </button>
         <button type="submit" className={styles.save} disabled={!canSave} title="Save (Ctrl+Enter)">
@@ -191,9 +239,9 @@ function TaskForm({
 }
 
 /**
- * A native date input dressed to show the date the way the rest of the app does
- * (`Sun, Nov 15, 2026`) instead of the browser's locale format. Clicking opens the picker;
- * typing still edits the (invisible) input.
+ * A typed date (`2026-11-15`, also `2026/11/15` or `20261115`) with the weekday beside it, plus a
+ * calendar button that opens the browser's date picker. Typing commits as soon as the text is a
+ * real date; on blur the text snaps back to the committed value.
  */
 function DateField({
   label,
@@ -206,30 +254,54 @@ function DateField({
   errorId?: string;
   onChange(value: string): void;
 }) {
+  const id = useId();
+  const [draft, setDraft] = useState<string | null>(null); // text while typing
+  const text = draft ?? value;
+  const typedBad = draft !== null && parseDateInput(draft) === null;
   return (
-    <label className={styles.field}>
-      <span className={styles.label}>{label}</span>
-      <span className={styles.date} data-invalid={errorId ? '' : undefined}>
-        <span aria-hidden="true">
-          {isValidISODate(value) ? formatFullDate(toDayIndex(value)) : 'Pick a date'}
-        </span>
-        <Icon name="calendar" />
+    <div className={styles.field}>
+      <label htmlFor={id} className={styles.label}>
+        {label}
+      </label>
+      <span className={styles.date} data-invalid={errorId || typedBad ? '' : undefined}>
         <input
-          type="date"
-          value={value}
-          aria-label={label}
-          aria-invalid={errorId !== undefined}
+          id={id}
+          value={text}
+          placeholder="YYYY-MM-DD"
+          inputMode="numeric"
+          autoComplete="off"
+          aria-invalid={errorId !== undefined || typedBad}
           aria-describedby={errorId}
-          onClick={(e) => {
-            try {
-              e.currentTarget.showPicker?.();
-            } catch {
-              // not allowed here (e.g. no user activation): the input still takes typing
-            }
+          onChange={(e) => {
+            setDraft(e.target.value);
+            const iso = parseDateInput(e.target.value);
+            if (iso) onChange(iso);
           }}
-          onChange={(e) => onChange(e.target.value)}
+          onBlur={() => setDraft(null)}
         />
+        <span className={styles.weekday} aria-hidden="true">
+          {isValidISODate(value) && formatWeekday(toDayIndex(value))}
+        </span>
+        <span className={styles.pick} title="Choose from calendar">
+          <Icon name="calendar" />
+          <input
+            type="date"
+            value={value}
+            aria-label={`Choose ${label.toLowerCase()} date from calendar`}
+            onClick={(e) => {
+              try {
+                e.currentTarget.showPicker?.();
+              } catch {
+                // not allowed here (e.g. no user activation): the browser's own picker key still works
+              }
+            }}
+            onChange={(e) => {
+              setDraft(null);
+              if (isValidISODate(e.target.value)) onChange(e.target.value);
+            }}
+          />
+        </span>
       </span>
-    </label>
+    </div>
   );
 }

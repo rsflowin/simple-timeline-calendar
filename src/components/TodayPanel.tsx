@@ -2,7 +2,6 @@ import { useEffect } from 'react';
 import {
   formatMonthDay,
   formatRange,
-  formatRangeWithYear,
   formatWeekday,
   todayISO,
   toDayIndex,
@@ -17,6 +16,7 @@ import { editTask } from '../views/openTask';
 import { taskColor } from '../views/taskColor';
 import { Icon } from './Icon';
 import { TagChip } from './TagChip';
+import { TaskForm } from './TaskDialog/TaskDialog';
 import styles from './TodayPanel.module.css';
 
 /** `11 days · day 4 of 11`: length, and progress when today is inside the task. */
@@ -26,37 +26,29 @@ function progress(start: DayIndex, end: DayIndex, today: DayIndex) {
   return today >= start && today <= end ? `day ${today - start + 1} of ${days}` : `${days} days`;
 }
 
-/** One task: title (opens the editor), dates, tags and details. Used by the agenda and the peek. */
+/** One agenda task: title (opens the editor), dates, tags and details. */
 function TaskSummary({
   task,
   start,
   end,
   today,
   tags,
-  withYear,
-  as: Heading = 'button',
 }: {
   task: Task;
   start: DayIndex;
   end: DayIndex;
   today: DayIndex;
   tags: readonly Tag[];
-  withYear?: boolean;
-  as?: 'button' | 'h3';
 }) {
   const tagsById = new Map(tags.map((t) => [t.id, t]));
   const p = progress(start, end, today);
   return (
     <div className={styles.item} style={{ borderLeftColor: taskColor(task, tags).color }}>
-      {Heading === 'button' ? (
-        <button type="button" className={styles.title} onClick={() => editTask(task.id)}>
-          {task.title}
-        </button>
-      ) : (
-        <h3 className={styles.title}>{task.title}</h3>
-      )}
+      <button type="button" className={styles.title} onClick={() => editTask(task.id)}>
+        {task.title}
+      </button>
       <span className={styles.muted}>
-        {withYear ? formatRangeWithYear(start, end) : formatRange(start, end)}
+        {formatRange(start, end)}
         {p && ` · ${p}`}
       </span>
       {task.tagIds.length > 0 && (
@@ -127,8 +119,9 @@ export function TodayPanel() {
   );
 }
 
-/** Side peek for the clicked task: read it without opening the dialog. Edit opens the dialog. */
-export function TaskPeek({ id }: { id: string }) {
+/** Side peek for the clicked task: edit or delete it right here, without the dialog. Edits are
+ * kept when the panel closes or switches task; Cancel discards them. */
+export function TaskPeek({ id, onDeleted }: { id: string; onDeleted?(): void }) {
   const doc = useDoc();
   const task = doc.tasks.find((t) => t.id === id);
   const close = () => useUi.getState().peek(null);
@@ -136,39 +129,31 @@ export function TaskPeek({ id }: { id: string }) {
     if (!task) close(); // deleted, or gone on undo
   }, [task]);
   if (!task) return null;
-  const today = toDayIndex(todayISO());
+  const { title, details, start, end, tagIds } = task;
 
   return (
     <aside className={styles.panel} aria-label="Task preview">
-      <header className={styles.head}>
-        <h2 className={styles.heading}>Task</h2>
-        <button
-          type="button"
-          className={styles.edit}
-          title="Edit (Enter, or double-click the bar)"
-          onClick={() => editTask(id)}
-        >
-          Edit
-        </button>
-        <button
-          type="button"
-          className={styles.close}
-          aria-label="Close preview"
-          title="Close (Esc)"
-          onClick={close}
-        >
-          <Icon name="close" />
-        </button>
-      </header>
-      <TaskSummary
-        task={task}
-        start={toDayIndex(task.start)}
-        end={toDayIndex(task.end)}
-        today={today}
-        tags={doc.tags}
-        withYear
-        as="h3"
-      />
+      <TaskForm
+        key={id}
+        id={id}
+        initial={{ title, details, start, end, tagIds }}
+        inline
+        onClose={close}
+        onDeleted={onDeleted}
+      >
+        <header className={styles.head}>
+          <h2 className={styles.heading}>Task</h2>
+          <button
+            type="button"
+            className={styles.close}
+            aria-label="Close preview"
+            title="Close (Esc)"
+            onClick={close}
+          >
+            <Icon name="close" />
+          </button>
+        </header>
+      </TaskForm>
     </aside>
   );
 }
