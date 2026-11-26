@@ -3,6 +3,9 @@ import {
   formatMonthDay,
   formatRange,
   formatWeekday,
+  fromDayIndex,
+  isValidISODate,
+  parts,
   todayISO,
   toDayIndex,
   type DayIndex,
@@ -19,11 +22,17 @@ import { TagChip } from './TagChip';
 import { TaskForm } from './TaskDialog/TaskDialog';
 import styles from './TodayPanel.module.css';
 
-/** `11 days · day 4 of 11`: length, and progress when today is inside the task. */
-function progress(start: DayIndex, end: DayIndex, today: DayIndex) {
+/** `11 days · day 4 of 11`: length, and progress when `day` is inside the task. */
+function progress(start: DayIndex, end: DayIndex, day: DayIndex) {
   const days = end - start + 1;
   if (days === 1) return '';
-  return today >= start && today <= end ? `day ${today - start + 1} of ${days}` : `${days} days`;
+  return day >= start && day <= end ? `day ${day - start + 1} of ${days}` : `${days} days`;
+}
+
+function formatSubtitle(day: DayIndex, today: DayIndex): string {
+  if (day === today) return `${formatWeekday(day)}, ${formatMonthDay(day)}`;
+  if (parts(day).year === parts(today).year) return formatWeekday(day);
+  return `${formatWeekday(day)}, ${parts(day).year}`;
 }
 
 /** One agenda task: title (opens the editor), dates, tags and details. */
@@ -31,17 +40,17 @@ function TaskSummary({
   task,
   start,
   end,
-  today,
+  day,
   tags,
 }: {
   task: Task;
   start: DayIndex;
   end: DayIndex;
-  today: DayIndex;
+  day: DayIndex;
   tags: readonly Tag[];
 }) {
   const tagsById = new Map(tags.map((t) => [t.id, t]));
-  const p = progress(start, end, today);
+  const p = progress(start, end, day);
   return (
     <div className={styles.item} style={{ borderLeftColor: taskColor(task, tags).color }}>
       <button type="button" className={styles.title} onClick={() => editTask(task.id)}>
@@ -64,25 +73,31 @@ function TaskSummary({
   );
 }
 
-/** Agenda: side panel listing every task scheduled today, with details, honouring the tag filter. */
+/** Agenda: side panel listing every task scheduled on the selected day, with details, honouring the tag filter. */
 export function TodayPanel() {
   const doc = useDoc();
   const tagFilter = usePrefs((s) => s.tagFilter);
   const setPrefs = usePrefs((s) => s.set);
-  // shortcut: read at render, so a tab left open past midnight shows yesterday until something re-renders; add a midnight timer if that matters.
+  const agendaDate = useUi((s) => s.agendaDate);
+  const setAgendaDate = useUi((s) => s.setAgendaDate);
   const today = toDayIndex(todayISO());
+  const day = toDayIndex(agendaDate);
+  const isToday = day === today;
+  const stepDay = (delta: number) => {
+    const next = fromDayIndex(day + delta);
+    if (isValidISODate(next)) setAgendaDate(next);
+  };
+  const subtitle = formatSubtitle(day, today);
   const filtered = tagFilter.some((id) => doc.tags.some((t) => t.id === id));
   const spans = visibleSpans(doc, tagFilter)
-    .filter((s) => s.start <= today && today <= s.end)
+    .filter((s) => s.start <= day && day <= s.end)
     .sort((a, b) => a.start - b.start || a.task.title.localeCompare(b.task.title));
 
   return (
     <aside className={styles.panel} aria-label="Agenda">
       <header className={styles.head}>
-        <h2 className={styles.heading}>Today</h2>
-        <span className={styles.muted}>
-          {formatWeekday(today)}, {formatMonthDay(today)}
-        </span>
+        <h2 className={styles.heading}>{isToday ? 'Today' : formatMonthDay(day)}</h2>
+        <span className={styles.muted}>{subtitle}</span>
         <button
           type="button"
           className={styles.close}
@@ -93,23 +108,77 @@ export function TodayPanel() {
           <Icon name="close" />
         </button>
       </header>
+      <div role="group" aria-label="Agenda date navigation" className={styles.nav}>
+        <button
+          type="button"
+          className={styles.navBtn}
+          aria-label="Previous day"
+          title="Previous day"
+          onClick={() => stepDay(-1)}
+        >
+          <Icon name="chevronLeft" />
+        </button>
+        <input
+          type="date"
+          className={styles.dateInput}
+          aria-label="Agenda date"
+          min="1900-01-01"
+          max="2199-12-31"
+          value={agendaDate}
+          onChange={(e) => {
+            if (isValidISODate(e.target.value)) setAgendaDate(e.target.value);
+          }}
+        />
+        <button
+          type="button"
+          className={styles.navBtn}
+          aria-label="Next day"
+          title="Next day"
+          onClick={() => stepDay(1)}
+        >
+          <Icon name="chevronRight" />
+        </button>
+        {!isToday && (
+          <button
+            type="button"
+            className={styles.todayBtn}
+            onClick={() => setAgendaDate(todayISO())}
+          >
+            Today
+          </button>
+        )}
+      </div>
       {spans.length === 0 ? (
         <div className={styles.empty}>
-          <p className={styles.muted}>Nothing scheduled today.</p>
-          <button type="button" onClick={() => useUi.getState().openNew()}>
+          <p className={styles.muted}>
+            {isToday ? 'Nothing scheduled today.' : `Nothing scheduled on ${formatMonthDay(day)}.`}
+          </p>
+          <button
+            type="button"
+            onClick={() => useUi.getState().openNew({ start: agendaDate, end: agendaDate })}
+          >
             + New task
           </button>
         </div>
       ) : (
         <>
-          <p className={styles.muted}>
-            {spans.length} task{spans.length === 1 ? '' : 's'}
-            {filtered && ' · filtered by tags'}
-          </p>
+          <div className={styles.meta}>
+            <p className={styles.muted}>
+              {spans.length} task{spans.length === 1 ? '' : 's'}
+              {filtered && ' · filtered by tags'}
+            </p>
+            <button
+              type="button"
+              className={styles.addBtn}
+              onClick={() => useUi.getState().openNew({ start: agendaDate, end: agendaDate })}
+            >
+              + New task
+            </button>
+          </div>
           <ul className={styles.list}>
             {spans.map(({ id, start, end, task }) => (
               <li key={id}>
-                <TaskSummary task={task} start={start} end={end} today={today} tags={doc.tags} />
+                <TaskSummary task={task} start={start} end={end} day={day} tags={doc.tags} />
               </li>
             ))}
           </ul>

@@ -32,7 +32,7 @@ describe('TodayPanel', () => {
   beforeEach(() => {
     useRoadmap.getState().reset(doc);
     usePrefs.setState({ tagFilter: [], agendaOpen: true });
-    useUi.setState({ editing: null, selectedId: null, peekId: null });
+    useUi.setState({ editing: null, selectedId: null, peekId: null, agendaDate: todayISO() });
   });
 
   it('lists only tasks overlapping today, earliest start first, with details', () => {
@@ -62,6 +62,70 @@ describe('TodayPanel', () => {
     expect(screen.getByText('Nothing scheduled today.')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Close agenda' }));
     expect(usePrefs.getState().agendaOpen).toBe(false);
+  });
+
+  it('steps days with Previous/Next day and resets with Today', () => {
+    render(<TodayPanel />);
+    expect(screen.queryByRole('button', { name: 'Today' })).toBeNull();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Next day' }));
+    expect(useUi.getState().agendaDate).toBe(fromDayIndex(today + 1));
+    expect(screen.getByRole('heading', { level: 2 })).not.toHaveTextContent('Today');
+    expect(titles()).toEqual(['Task span', 'Task later']);
+    expect(screen.getByText(/day 4 of 5/)).toBeInTheDocument();
+
+    const todayBtn = screen.getByRole('button', { name: 'Today' });
+    fireEvent.click(todayBtn);
+    expect(useUi.getState().agendaDate).toBe(todayISO());
+    expect(screen.getByRole('heading', { level: 2 })).toHaveTextContent('Today');
+    expect(screen.queryByRole('button', { name: 'Today' })).toBeNull();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Previous day' }));
+    expect(useUi.getState().agendaDate).toBe(fromDayIndex(today - 1));
+    expect(titles()).toEqual(['Task past', 'Task span']);
+  });
+
+  it('jumps to an arbitrary valid date from the date input and ignores invalid input', () => {
+    render(<TodayPanel />);
+    const input = screen.getByLabelText('Agenda date');
+    const pastIso = fromDayIndex(today - 3);
+    fireEvent.change(input, { target: { value: pastIso } });
+    expect(useUi.getState().agendaDate).toBe(pastIso);
+    expect(titles()).toEqual(['Task past']);
+
+    fireEvent.change(input, { target: { value: '' } });
+    expect(useUi.getState().agendaDate).toBe(pastIso);
+  });
+
+  it('creates a new task prefilled with the selected agenda date from empty or populated states', () => {
+    const emptyDay = fromDayIndex(today + 10);
+    useUi.setState({ agendaDate: emptyDay });
+    render(<TodayPanel />);
+    expect(screen.getByText(/Nothing scheduled on /)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: '+ New task' }));
+    expect(useUi.getState().editing).toMatchObject({
+      mode: 'new',
+      draft: { start: emptyDay, end: emptyDay },
+    });
+
+    const populatedDay = fromDayIndex(today + 1);
+    act(() => useUi.setState({ agendaDate: populatedDay, editing: null }));
+    fireEvent.click(screen.getByRole('button', { name: '+ New task' }));
+    expect(useUi.getState().editing).toMatchObject({
+      mode: 'new',
+      draft: { start: populatedDay, end: populatedDay },
+    });
+  });
+
+  it('clamps stepping at the 1900–2199 date bounds', () => {
+    useUi.setState({ agendaDate: '1900-01-01' });
+    render(<TodayPanel />);
+    fireEvent.click(screen.getByRole('button', { name: 'Previous day' }));
+    expect(useUi.getState().agendaDate).toBe('1900-01-01');
+
+    act(() => useUi.setState({ agendaDate: '2199-12-31' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Next day' }));
+    expect(useUi.getState().agendaDate).toBe('2199-12-31');
   });
 });
 

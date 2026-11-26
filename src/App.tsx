@@ -36,10 +36,12 @@ const deleteSelected = () => {
   ui.peek(null);
   focusView();
 };
-const goToToday = () =>
-  usePrefs.getState().view === 'calendar'
-    ? setPrefs({ cursor: todayISO() })
-    : timeline.current?.scrollToDay(toDayIndex(todayISO()));
+const goToToday = () => {
+  const today = todayISO();
+  ui.setAgendaDate(today);
+  if (usePrefs.getState().view === 'calendar') setPrefs({ cursor: today });
+  else timeline.current?.scrollToDay(toDayIndex(today));
+};
 const step = (dir: 1 | -1) => {
   const { view, calendarMode, cursor } = usePrefs.getState();
   if (view === 'timeline') timeline.current?.step(dir);

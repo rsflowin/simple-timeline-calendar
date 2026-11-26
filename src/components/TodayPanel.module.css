@@ -43,6 +43,43 @@
   color: var(--color-text-muted);
 }
 
+.nav {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.navBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+}
+
+.dateInput {
+  flex: 1;
+  min-width: 0;
+  padding: 3px 6px;
+  font-size: 13px;
+}
+
+.todayBtn {
+  padding: 3px 8px;
+  font-size: 12px;
+}
+
+.meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.addBtn {
+  padding: 2px 8px;
+  font-size: 12px;
+}
+
 .muted {
   color: var(--color-text-muted);
   font-size: 12px;

@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { dayOf, toDayIndex } from '../../domain/dates';
+import { dayOf, todayISO, toDayIndex } from '../../domain/dates';
 import type { Task } from '../../domain/types';
 import { usePrefs } from '../../store/prefsStore';
 import { useRoadmap } from '../../store/roadmapStore';
@@ -109,7 +109,13 @@ describe('CalendarView — +N more (CAL-4)', () => {
       unobserve() {}
       disconnect() {}
     } as unknown as typeof ResizeObserver;
-    useUi.setState({ quickCreate: null, editing: null, selectedId: null, peekId: null });
+    useUi.setState({
+      quickCreate: null,
+      editing: null,
+      selectedId: null,
+      peekId: null,
+      agendaDate: todayISO(),
+    });
     usePrefs.setState({
       calendarMode: 'month',
       cursor: '2026-11-13',
@@ -117,6 +123,7 @@ describe('CalendarView — +N more (CAL-4)', () => {
       tagFilter: [],
       clickCreate: true,
       dragBehavior: 'task',
+      agendaOpen: false,
     });
     useRoadmap.getState().reset({
       tags: [],
@@ -165,7 +172,13 @@ describe('CalendarView — gestures', () => {
   beforeEach(() => {
     document.elementsFromPoint = (x: number) => [...document.querySelectorAll(`[data-day="${x}"]`)];
     useRoadmap.getState().reset({ tags: [], tasks: [task('a', '2026-11-05', '2026-11-06')] });
-    useUi.setState({ quickCreate: null, editing: null, selectedId: null, peekId: null });
+    useUi.setState({
+      quickCreate: null,
+      editing: null,
+      selectedId: null,
+      peekId: null,
+      agendaDate: todayISO(),
+    });
     usePrefs.setState({
       calendarMode: 'month',
       cursor: '2026-11-13',
@@ -173,6 +186,7 @@ describe('CalendarView — gestures', () => {
       tagFilter: [],
       clickCreate: true,
       dragBehavior: 'task',
+      agendaOpen: false,
     });
   });
   afterEach(() => {
@@ -296,10 +310,24 @@ describe('CalendarView — gestures', () => {
     win('pointerup', '2026-11-12');
     expect(useUi.getState().quickCreate).toMatchObject({ start: '2026-11-12', end: '2026-11-12' });
   });
+
+  it('clicking a month date pill opens Agenda for that day without opening quick-create', () => {
+    useUi.setState({ peekId: 'a' });
+    render(<CalendarView />);
+    const dateBtn = screen.getByRole('button', { name: 'Agenda for Thu, Nov 12' });
+    fireEvent.pointerDown(dateBtn, { button: 0 });
+    fireEvent.click(dateBtn);
+    expect(useUi.getState().quickCreate).toBeNull();
+    expect(useUi.getState().peekId).toBeNull();
+    expect(useUi.getState().agendaDate).toBe('2026-11-12');
+    expect(usePrefs.getState().agendaOpen).toBe(true);
+    expect(dateBtn).toHaveAttribute('aria-pressed', 'true');
+  });
 });
 
 describe('CalendarView — week', () => {
   beforeEach(() => {
+    useUi.setState({ quickCreate: null, editing: null, selectedId: null, peekId: null, agendaDate: todayISO() });
     usePrefs.setState({
       calendarMode: 'week',
       cursor: '2026-11-13',
@@ -308,6 +336,7 @@ describe('CalendarView — week', () => {
       tagFilter: [],
       clickCreate: true,
       dragBehavior: 'task',
+      agendaOpen: false,
     });
   });
 
@@ -339,16 +368,32 @@ describe('CalendarView — week', () => {
     expect(weekBody.scrollTop).toBe(65);
     expect(useUi.getState().editing).toBeNull();
   });
+
+  it('clicking a week header date opens Agenda for that day', () => {
+    render(<CalendarView />);
+    const btn = screen.getByRole('button', { name: 'Agenda for Tue, Nov 10' });
+    fireEvent.click(btn);
+    expect(usePrefs.getState().agendaOpen).toBe(true);
+    expect(useUi.getState().agendaDate).toBe('2026-11-10');
+    expect(btn).toHaveAttribute('aria-pressed', 'true');
+  });
 });
 
 describe('CalendarView — year', () => {
   beforeEach(() => {
-    useUi.setState({ quickCreate: null, editing: null, selectedId: null, peekId: null });
+    useUi.setState({
+      quickCreate: null,
+      editing: null,
+      selectedId: null,
+      peekId: null,
+      agendaDate: todayISO(),
+    });
     usePrefs.setState({
       calendarMode: 'year',
       cursor: '2026-11-13',
       packRows: true,
       tagFilter: [],
+      agendaOpen: false,
     });
     useRoadmap.getState().reset({
       tags: [],
@@ -374,21 +419,15 @@ describe('CalendarView — year', () => {
     expect(day('Nov 15, 0 tasks')).not.toHaveAttribute('data-level');
   });
 
-  it('a day lists its tasks and can add one there (CAL-11)', () => {
+  it('clicking a day opens the Agenda panel for that day and highlights it', () => {
+    useUi.setState({ peekId: 'a' });
     render(<CalendarView />);
-    fireEvent.click(day('Nov 14, 2 tasks'));
-    const pop = screen.getByRole('dialog', { name: 'Tasks on Nov 14' });
-    expect(pop).toHaveTextContent('Task cTask e+ Add task');
-    fireEvent.click(screen.getByRole('button', { name: '+ Add task' }));
-    expect(useUi.getState().quickCreate).toMatchObject({ start: '2026-11-14', end: '2026-11-14' });
-  });
-
-  it('an outside click closes the day list and returns focus to the day (NF-4)', () => {
-    render(<CalendarView />);
-    fireEvent.click(day('Nov 14, 2 tasks'));
-    fireEvent.pointerDown(document.body);
-    expect(screen.queryByRole('dialog')).toBeNull();
-    expect(day('Nov 14, 2 tasks')).toHaveFocus();
+    const btn = day('Nov 14, 2 tasks');
+    fireEvent.click(btn);
+    expect(usePrefs.getState().agendaOpen).toBe(true);
+    expect(useUi.getState().agendaDate).toBe('2026-11-14');
+    expect(useUi.getState().peekId).toBeNull();
+    expect(btn).toHaveAttribute('aria-pressed', 'true');
   });
 
   it('clicking a month name opens Month view for it (CAL-12)', () => {

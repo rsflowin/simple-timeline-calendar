@@ -24,6 +24,25 @@
   background: var(--color-surface);
 }
 
+.headerPickable {
+  cursor: pointer;
+}
+
+.hoverTip {
+  position: absolute;
+  top: calc(100% + 2px);
+  z-index: 4;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: var(--color-text);
+  color: var(--color-surface);
+  font-size: 12px;
+  line-height: 16px;
+  white-space: nowrap;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
 .headerRow {
   position: relative;
   height: 24px;
@@ -61,7 +80,8 @@
 
 .line,
 .weekend,
-.today {
+.today,
+.agendaLine {
   position: absolute;
   top: 0;
   bottom: 0;
@@ -82,6 +102,14 @@
   width: 2px;
   margin-left: -1px;
   background: var(--color-today-line);
+}
+
+.agendaLine {
+  z-index: 2;
+  width: 2px;
+  margin-left: -1px;
+  background: var(--color-selection);
+  opacity: 0.65;
 }
 
 .bar {
@@ -209,13 +237,41 @@
   font-weight: 600;
 }
 
-.todayDate {
+.todayDate,
+.agendaDate {
   display: inline-block;
   min-width: 20px;
   height: 18px;
   padding: 0 4px;
   border-radius: 9px;
+  line-height: 18px;
+}
+
+.todayDate {
   background: var(--color-today-line);
   color: var(--color-on-accent);
-  line-height: 18px;
+}
+
+.agendaDate {
+  background: var(--color-accent-bg);
+  color: var(--color-text);
+  box-shadow: inset 0 0 0 1.5px var(--color-selection);
+}
+
+.agendaActive {
+  outline: 2px solid var(--color-selection);
+  outline-offset: 1px;
+}
+
+.dayCell {
+  border: none;
+  border-left: 1px solid var(--color-grid-line);
+  border-radius: 0;
+  background: transparent;
+  padding: 0 4px;
+  text-align: center;
+}
+
+.dayCell:hover {
+  background: var(--color-hover);
 }
