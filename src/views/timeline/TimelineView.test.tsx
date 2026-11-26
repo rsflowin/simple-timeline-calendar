@@ -2,8 +2,15 @@
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import { createRef } from 'react';
 import { beforeEach, describe, expect, it } from 'vitest';
-import { fromDayIndex, todayISO, toDayIndex } from '../../domain/dates';
+import {
+  formatMonthDay,
+  formatWeekday,
+  fromDayIndex,
+  todayISO,
+  toDayIndex,
+} from '../../domain/dates';
 import type { RoadmapDoc, Task } from '../../domain/types';
+import { PX_PER_DAY } from '../../domain/scale';
 import { usePrefs } from '../../store/prefsStore';
 import { useRoadmap } from '../../store/roadmapStore';
 import { useUi } from '../../store/uiStore';
@@ -34,7 +41,13 @@ const tops = (ids = ['a', 'b', 'c']) =>
 describe('TimelineView', () => {
   beforeEach(() => {
     useRoadmap.getState().reset(doc);
-    useUi.setState({ quickCreate: null, editing: null, selectedId: null, peekId: null });
+    useUi.setState({
+      quickCreate: null,
+      editing: null,
+      selectedId: null,
+      peekId: null,
+      agendaDate: todayISO(),
+    });
     usePrefs.setState({
       zoom: 'day',
       packRows: true,
@@ -43,6 +56,7 @@ describe('TimelineView', () => {
       tagFilter: [],
       clickCreate: true,
       dragBehavior: 'task',
+      agendaOpen: false,
     });
   });
 
@@ -116,7 +130,9 @@ describe('TimelineView', () => {
   it('hides tasks without a selected tag', () => {
     usePrefs.setState({ tagFilter: ['red'] });
     render(<TimelineView />);
-    expect(screen.getAllByRole('button').map((b) => b.textContent)).toEqual(['Task a']);
+    expect(screen.getAllByRole('button', { name: /^Task / }).map((b) => b.textContent)).toEqual([
+      'Task a',
+    ]);
   });
 
   it('Enter on a focused bar selects it and opens the Task dialog (NF-4)', () => {
@@ -129,7 +145,9 @@ describe('TimelineView', () => {
   it('renders only tasks overlapping the rendered range', () => {
     useRoadmap.getState().reset({ tags: [], tasks: [task('far', 5000, 5001), task('near', 0, 0)] });
     render(<TimelineView />);
-    expect(screen.getAllByRole('button').map((b) => b.textContent)).toEqual(['Task near']);
+    expect(screen.getAllByRole('button', { name: /^Task / }).map((b) => b.textContent)).toEqual([
+      'Task near',
+    ]);
   });
 
   it('jumping far away re-centres the range instead of stretching it', () => {
@@ -137,7 +155,9 @@ describe('TimelineView', () => {
     const ref = createRef<TimelineHandle>();
     render(<TimelineView ref={ref} />);
     act(() => ref.current!.scrollToDay(today + 5000));
-    expect(screen.getAllByRole('button').map((b) => b.textContent)).toEqual(['Task far']);
+    expect(screen.getAllByRole('button', { name: /^Task / }).map((b) => b.textContent)).toEqual([
+      'Task far',
+    ]);
   });
 
   it('pressing a bar closes an open quick-create', () => {
@@ -243,5 +263,79 @@ describe('TimelineView', () => {
     expect(scroller.scrollLeft).toBe(210);
     expect(scroller.scrollTop).toBe(130);
     expect(useUi.getState().editing).toBeNull();
+  });
+
+  it('opens Agenda for a clicked header day in Day, Week, and Month zooms', () => {
+    useUi.setState({ peekId: 'a' });
+    const { container } = render(<TimelineView />);
+    // Day zoom: top month row is not clickable; only bottom day buttons open Agenda
+    const dayHeader = container.querySelector('[class*="header"]')!;
+    act(() => usePrefs.setState({ agendaOpen: false }));
+    fireEvent.click(dayHeader.firstElementChild!, { clientX: 50 });
+    expect(usePrefs.getState().agendaOpen).toBe(false);
+
+    const targetDay = today + 2;
+    const btn = screen.getByRole('button', {
+      name: `Agenda for ${formatWeekday(targetDay)}, ${formatMonthDay(targetDay)}`,
+    });
+    fireEvent.click(btn);
+    expect(usePrefs.getState().agendaOpen).toBe(true);
+    expect(useUi.getState().agendaDate).toBe(fromDayIndex(targetDay));
+    expect(useUi.getState().peekId).toBeNull();
+    expect(btn).toHaveAttribute('aria-pressed', 'true');
+    expect(container.querySelector('[class*="agendaLine"]')).not.toBeNull();
+    expect(container.querySelector('[class*="today"]')).not.toBeNull();
+
+    // Clicking the exact selected date again hides the blue line and closes Agenda, keeping today red line
+    fireEvent.click(btn);
+    expect(usePrefs.getState().agendaOpen).toBe(false);
+    expect(container.querySelector('[class*="agendaLine"]')).toBeNull();
+    expect(container.querySelector('[class*="today"]')).not.toBeNull();
+
+    // Week zoom: hover shows date preview, clears across zoom switches, click picks day under pointer
+    act(() => usePrefs.setState({ zoom: 'week', agendaOpen: false }));
+    expect(screen.queryByRole('button', { name: /^Agenda for / })).toBeNull();
+    const weekHeader = container.querySelector('[class*="header"]')!;
+    const weekTodayLine = container.querySelector('[class*="today"]') as HTMLElement;
+    const weekTarget = today + 5;
+    const weekX = parseFloat(weekTodayLine.style.left) + 5 * PX_PER_DAY.week;
+    fireEvent.mouseMove(weekHeader, { clientX: weekX });
+    expect(
+      screen.getByText(`${formatWeekday(weekTarget)}, ${formatMonthDay(weekTarget)}`),
+    ).toBeInTheDocument();
+    act(() => usePrefs.setState({ zoom: 'day' }));
+    act(() => usePrefs.setState({ zoom: 'week' }));
+    expect(
+      screen.queryByText(`${formatWeekday(weekTarget)}, ${formatMonthDay(weekTarget)}`),
+    ).toBeNull();
+    const weekXAfter =
+      parseFloat((container.querySelector('[class*="today"]') as HTMLElement).style.left) +
+      5 * PX_PER_DAY.week;
+    fireEvent.click(weekHeader, { clientX: weekXAfter });
+    expect(usePrefs.getState().agendaOpen).toBe(true);
+    expect(useUi.getState().agendaDate).toBe(fromDayIndex(weekTarget));
+    expect(container.querySelector('[class*="agendaLine"]')).not.toBeNull();
+
+    // Clicking the exact same week date again hides the blue line while keeping today red line
+    fireEvent.click(weekHeader, { clientX: weekXAfter });
+    expect(usePrefs.getState().agendaOpen).toBe(false);
+    expect(container.querySelector('[class*="agendaLine"]')).toBeNull();
+    expect(container.querySelector('[class*="today"]')).not.toBeNull();
+
+    // Month zoom: click picks day under pointer; closing agenda hides blue line while keeping today red line
+    act(() => usePrefs.setState({ zoom: 'month', agendaOpen: false }));
+    expect(screen.queryByRole('button', { name: /^Agenda for / })).toBeNull();
+    const monthTarget = today + 10;
+    const monthX =
+      parseFloat((container.querySelector('[class*="today"]') as HTMLElement).style.left) +
+      10 * PX_PER_DAY.month;
+    fireEvent.click(weekHeader, { clientX: monthX });
+    expect(usePrefs.getState().agendaOpen).toBe(true);
+    expect(useUi.getState().agendaDate).toBe(fromDayIndex(monthTarget));
+    expect(container.querySelector('[class*="agendaLine"]')).not.toBeNull();
+
+    act(() => usePrefs.setState({ agendaOpen: false }));
+    expect(container.querySelector('[class*="agendaLine"]')).toBeNull();
+    expect(container.querySelector('[class*="today"]')).not.toBeNull();
   });
 });

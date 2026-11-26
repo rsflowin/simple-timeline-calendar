@@ -37,6 +37,14 @@ test('axe: no serious or critical violations', async ({ page }) => {
   await expect(page.getByRole('button', { name: 'Task blue, Nov 2 – Nov 4' })).toBeVisible();
   await expectNoSeriousViolations(page, 'Timeline');
 
+  await page.getByRole('group', { name: 'Zoom' }).getByRole('button', { name: 'Day' }).click();
+  await expectNoSeriousViolations(page, 'Timeline Day');
+
+  await page.getByRole('button', { name: 'Agenda', exact: true }).click();
+  await expect(page.getByRole('complementary', { name: 'Agenda' })).toBeVisible();
+  await expectNoSeriousViolations(page, 'Agenda');
+  await page.getByRole('button', { name: 'Close agenda' }).click();
+
   await page.getByRole('button', { name: 'Task blue, Nov 2 – Nov 4' }).press('Enter');
   await expect(page.getByRole('dialog', { name: 'Edit task' })).toBeVisible();
   await expectNoSeriousViolations(page, 'Task dialog');
@@ -101,17 +109,21 @@ test('keyboard: Tab reaches a bar, Enter opens it, Delete deletes it', async ({ 
   await expect(page.getByRole('region', { name: 'Timeline' })).toBeFocused();
 });
 
-test('keyboard: Year view day opens its task list and quick-create', async ({ page }) => {
+test('keyboard: Year view day opens its agenda briefing and new task dialog', async ({
+  page,
+}) => {
   await page.getByRole('button', { name: 'Calendar' }).click();
   await page.getByRole('button', { name: 'Year' }).click();
   await page.getByRole('button', { name: 'Nov 3, 2 tasks' }).focus();
   await page.keyboard.press('Enter');
-  const popover = page.getByRole('dialog', { name: 'Tasks on Nov 3' });
-  await expect(popover.getByRole('button', { name: 'Task blue' })).toBeVisible();
-  await popover.getByRole('button', { name: '+ Add task' }).press('Enter');
-  await expect(
-    page.getByRole('dialog', { name: 'New task' }).getByLabel('Task title'),
-  ).toBeFocused();
+  const agenda = page.getByRole('complementary', { name: 'Agenda' });
+  await expect(agenda).toBeVisible();
+  await expect(agenda.getByRole('heading', { name: 'Nov 3' })).toBeVisible();
+  await expect(agenda.getByRole('button', { name: 'Task blue' })).toBeVisible();
+  await agenda.getByRole('button', { name: '+ New task' }).click();
+  const dialog = page.getByRole('dialog', { name: 'New task' });
+  await expect(dialog.getByLabel('Start', { exact: true })).toHaveValue('2026-11-03');
+  await expect(dialog.getByLabel('End', { exact: true })).toHaveValue('2026-11-03');
 });
 
 test('no horizontal page scroll at 375 px', async ({ page }) => {

@@ -65,8 +65,9 @@ export function useCalendarGestures(
   };
 
   const onEmptyPointerDown = (e: PointerEvent<HTMLElement>) => {
-    // Only presses on a day cell itself: bars, `+N more` and popovers (DOM descendants of the
-    // calendar, over the cells) are not inside one. No stopPropagation: Popover listens on document.
+    // Only presses on a day cell itself: bars, date buttons, `+N more` and popovers are ignored.
+    // No stopPropagation: Popover listens on document.
+    if ((e.target as Element).closest('button')) return;
     const cell = (e.target as Element).closest<HTMLElement>('[data-day]');
     if (e.button !== 0 || !cell) return;
     if (!clickCreate && dragBehavior === 'none') return;

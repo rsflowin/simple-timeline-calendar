@@ -73,20 +73,53 @@
   height: 20px;
   margin: 2px 4px;
   padding: 0 4px;
+  border: none;
   border-radius: 10px;
+  background: transparent;
+  color: inherit;
   font-size: 12px;
   line-height: 20px;
   text-align: center;
 }
 
-.today .date {
+.date:hover {
+  background: var(--color-hover);
+}
+
+.today .date,
+.today .date:hover {
   background: var(--color-today-line);
   color: var(--color-on-accent);
+}
+
+.date.agendaDate,
+.date.agendaDate:hover {
+  background: var(--color-accent-bg);
+  color: var(--color-text);
+  box-shadow: inset 0 0 0 1.5px var(--color-selection);
+}
+
+.today .date.agendaDate,
+.today .date.agendaDate:hover {
+  background: var(--color-today-line);
+  color: var(--color-on-accent);
+  box-shadow: none;
+  outline: 2px solid var(--color-selection);
+  outline-offset: 1px;
 }
 
 /* Week view */
 
 /* Today: the same red date pill in every view (Month cell, Week header, Year, Timeline day) */
+.headBtn {
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  padding: 0 6px;
+  color: inherit;
+  line-height: 24px;
+}
+
 .headDate {
   display: inline-block;
   min-width: 20px;
@@ -104,6 +137,20 @@
 .todayHead .headDate {
   background: var(--color-today-line);
   color: var(--color-on-accent);
+}
+
+.agendaHead .headDate {
+  background: var(--color-accent-bg);
+  color: var(--color-text);
+  box-shadow: inset 0 0 0 1.5px var(--color-selection);
+}
+
+.todayHead .agendaHead .headDate {
+  background: var(--color-today-line);
+  color: var(--color-on-accent);
+  box-shadow: none;
+  outline: 2px solid var(--color-selection);
+  outline-offset: 1px;
 }
 
 .weekBody {
@@ -321,11 +368,7 @@
   font-weight: 600;
 }
 
-.dayHead {
-  margin-bottom: 8px;
-  font-weight: 600;
-}
-
-.addTask {
-  margin-top: 8px;
+.miniDay.agendaDay {
+  outline: 2px solid var(--color-selection);
+  outline-offset: 1px;
 }

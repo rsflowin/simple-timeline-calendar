@@ -4,6 +4,8 @@ import { hiddenCounts, weekLanes } from '../../domain/calendar';
 import {
   formatMonthDay,
   formatRange,
+  formatWeekday,
+  fromDayIndex,
   parts,
   todayISO,
   toDayIndex,
@@ -12,7 +14,7 @@ import {
 import type { TaskSpan } from '../../domain/spans';
 import { usePrefs } from '../../store/prefsStore';
 import { useDoc } from '../../store/roadmapStore';
-import { useUi } from '../../store/uiStore';
+import { useAgendaDay, useUi } from '../../store/uiStore';
 import { taskColor } from '../taskColor';
 import {
   DATE_HEIGHT,
@@ -59,6 +61,7 @@ export function WeekRow({
   const tagOrder = useMemo(() => tags.map((t) => t.id), [tags]);
   const selectedId = useUi((s) => s.selectedId);
   const today = toDayIndex(todayISO());
+  const agendaDay = useAgendaDay();
   const lanes = useMemo(
     () =>
       weekLanes(spans, weekStart, pack, {
@@ -96,7 +99,17 @@ export function WeekRow({
           const cls = [styles.cell, outside && styles.outside, d === today && styles.today];
           return (
             <div key={d} data-day={d} className={cls.filter(Boolean).join(' ')}>
-              {!details && <span className={styles.date}>{p.date}</span>}
+              {!details && (
+                <button
+                  type="button"
+                  className={`${styles.date} ${d === agendaDay ? styles.agendaDate : ''}`}
+                  aria-label={`Agenda for ${formatWeekday(d)}, ${formatMonthDay(d)}`}
+                  aria-pressed={d === agendaDay}
+                  onClick={() => useUi.getState().openAgendaFor(fromDayIndex(d))}
+                >
+                  {p.date}
+                </button>
+              )}
             </div>
           );
         })}

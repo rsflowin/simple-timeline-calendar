@@ -15,13 +15,14 @@ interface Props {
   year: number;
   month: number;
   today: DayIndex;
+  selectedDay?: DayIndex;
   /** Tasks per day (CAL-10). */
   counts: ReadonlyMap<DayIndex, number>;
-  onDay(day: DayIndex, el: HTMLElement): void;
+  onDay(day: DayIndex): void;
 }
 
 /** One Mon-first month grid of the Year view (CAL-9 … CAL-12). */
-export function MiniMonth({ year, month, today, counts, onDay }: Props) {
+export function MiniMonth({ year, month, today, selectedDay, counts, onDay }: Props) {
   const setPrefs = usePrefs((s) => s.set);
   const first = dayOf(year, month);
   const weeks = monthWeeks(year, month);
@@ -47,12 +48,13 @@ export function MiniMonth({ year, month, today, counts, onDay }: Props) {
             <button
               key={d}
               type="button"
-              className={`${styles.miniDay} ${d === today ? styles.today : ''}`}
+              className={`${styles.miniDay} ${d === today ? styles.today : ''} ${d === selectedDay ? styles.agendaDay : ''}`}
               data-level={Math.min(n, 3) || undefined}
               // days without tasks stay clickable but leave the tab order
               tabIndex={n ? undefined : -1}
               aria-label={`${formatMonthDay(d)}, ${n} task${n === 1 ? '' : 's'}`}
-              onClick={(e) => onDay(d, e.currentTarget)}
+              aria-pressed={d === selectedDay}
+              onClick={() => onDay(d)}
             >
               {parts(d).date}
             </button>

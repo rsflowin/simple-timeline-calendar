@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { todayISO, type ISODate } from '../domain/dates';
+import { isValidISODate, todayISO, toDayIndex, type DayIndex, type ISODate } from '../domain/dates';
 import type { TaskInput } from '../domain/doc';
 import { usePrefs } from './prefsStore';
 
@@ -17,6 +17,8 @@ interface UiState {
   /** Month at the centre of the timeline, e.g. `November 2026`; the toolbar shows it. */
   timelineTitle: string;
   shortcutsOpen: boolean;
+  /** Day shown in the Agenda briefing panel. Not persisted: the app opens on today. */
+  agendaDate: ISODate;
   /** Opens the Task dialog for a new task; dates default to today – today (TD-2), tags to the
    * active filter so the task doesn't vanish on save. */
   openNew(draft?: Partial<TaskInput>): void;
@@ -29,9 +31,11 @@ interface UiState {
   setHover(hover: UiState['hover']): void;
   setTimelineTitle(title: string): void;
   setShortcutsOpen(open: boolean): void;
+  setAgendaDate(date: ISODate): void;
+  openAgendaFor(date: ISODate): void;
 }
 
-export const useUi = create<UiState>()((set) => ({
+export const useUi = create<UiState>()((set, get) => ({
   editing: null,
   selectedId: null,
   quickCreate: null,
@@ -39,6 +43,7 @@ export const useUi = create<UiState>()((set) => ({
   hover: null,
   timelineTitle: '',
   shortcutsOpen: false,
+  agendaDate: todayISO(),
   openNew: (draft = {}) => {
     const today = todayISO();
     set({
@@ -64,4 +69,24 @@ export const useUi = create<UiState>()((set) => ({
   setHover: (hover) => set({ hover }),
   setTimelineTitle: (timelineTitle) => set({ timelineTitle }),
   setShortcutsOpen: (shortcutsOpen) => set({ shortcutsOpen }),
+  setAgendaDate: (agendaDate) => {
+    if (isValidISODate(agendaDate)) set({ agendaDate });
+  },
+  openAgendaFor: (agendaDate) => {
+    if (!isValidISODate(agendaDate)) return;
+    if (usePrefs.getState().agendaOpen && get().peekId === null && get().agendaDate === agendaDate) {
+      usePrefs.getState().set({ agendaOpen: false });
+      return;
+    }
+    set({ agendaDate, peekId: null });
+    usePrefs.getState().set({ agendaOpen: true });
+  },
 }));
+
+/** Selected Agenda briefing day when the panel is visible (not overridden by TaskPeek). */
+export function useAgendaDay(): DayIndex | undefined {
+  const agendaOpen = usePrefs((s) => s.agendaOpen);
+  const agendaDate = useUi((s) => s.agendaDate);
+  const peekId = useUi((s) => s.peekId);
+  return agendaOpen && !peekId ? toDayIndex(agendaDate) : undefined;
+}

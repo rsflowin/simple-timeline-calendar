@@ -365,7 +365,7 @@ export function Toolbar({ onToday, onStep }: ToolbarProps) {
           className={cx(styles.icon, styles.toggle)}
           aria-label="Agenda"
           aria-pressed={agendaOpen}
-          title="Agenda: today's tasks (A)"
+          title="Agenda: daily briefing (A)"
           onClick={() => setPrefs({ agendaOpen: !agendaOpen })}
         >
           <Icon name="panel" />

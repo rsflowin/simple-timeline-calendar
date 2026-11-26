@@ -1,11 +1,14 @@
 import {
+  formatMonthDay,
   formatWeekday,
+  fromDayIndex,
   parts,
   startOfWeek,
   todayISO,
   toDayIndex,
   type DayIndex,
 } from '../../domain/dates';
+import { useAgendaDay, useUi } from '../../store/uiStore';
 import type { CalendarGestures } from './useCalendarGestures';
 import { WeekRow } from './WeekRow';
 import styles from './calendar.module.css';
@@ -14,12 +17,21 @@ import styles from './calendar.module.css';
 export function WeekView({ cursor, g }: { cursor: DayIndex; g: CalendarGestures }) {
   const start = startOfWeek(cursor);
   const today = toDayIndex(todayISO());
+  const agendaDay = useAgendaDay();
   return (
     <div className={styles.week}>
       <div className={styles.weekdays}>
         {Array.from({ length: 7 }, (_, i) => start + i).map((d) => (
           <div key={d} className={d === today ? styles.todayHead : undefined}>
-            {formatWeekday(d)} <span className={styles.headDate}>{parts(d).date}</span>
+            <button
+              type="button"
+              className={`${styles.headBtn} ${d === agendaDay ? styles.agendaHead : ''}`}
+              aria-label={`Agenda for ${formatWeekday(d)}, ${formatMonthDay(d)}`}
+              aria-pressed={d === agendaDay}
+              onClick={() => useUi.getState().openAgendaFor(fromDayIndex(d))}
+            >
+              {formatWeekday(d)} <span className={styles.headDate}>{parts(d).date}</span>
+            </button>
           </div>
         ))}
       </div>

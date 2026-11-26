@@ -27,7 +27,7 @@ import { startNonTaskDrag, startPointerDrag } from '../../hooks/pointerDrag';
 import { usePrefs } from '../../store/prefsStore';
 import { useDoc, useRoadmap } from '../../store/roadmapStore';
 import { useStatus } from '../../store/statusStore';
-import { useUi } from '../../store/uiStore';
+import { useAgendaDay, useUi } from '../../store/uiStore';
 import { openTask } from '../openTask';
 import { taskColor } from '../taskColor';
 import { TagChip } from '../../components/TagChip';
@@ -64,6 +64,7 @@ export function TimelineView({ ref }: { ref?: Ref<TimelineHandle> }) {
   const selectedId = useUi((s) => s.selectedId);
   const today = toDayIndex(todayISO());
   const { ref: scroller, st, sync, scrollToDay } = useTimelineRange(zoom, today);
+  const selectedAgendaDay = useAgendaDay();
   const { from, to, win } = st;
   const px = PX_PER_DAY[st.zoom];
   // Drag callbacks outlive the render that started them; the range may grow mid-drag.
@@ -266,7 +267,10 @@ export function TimelineView({ ref }: { ref?: Ref<TimelineHandle> }) {
           bottom={bottom}
           from={from}
           px={px}
+          isDayZoom={st.zoom === 'day'}
           today={st.zoom === 'day' ? today : undefined}
+          selectedDay={selectedAgendaDay}
+          onSelectDay={(d) => useUi.getState().openAgendaFor(fromDayIndex(d))}
         />
         <div
           ref={grid}
@@ -298,6 +302,12 @@ export function TimelineView({ ref }: { ref?: Ref<TimelineHandle> }) {
           {today >= from && today < to && (
             <div className={styles.today} style={{ left: x(today) + px / 2 }} />
           )}
+          {selectedAgendaDay !== undefined &&
+            selectedAgendaDay !== today &&
+            selectedAgendaDay >= from &&
+            selectedAgendaDay < to && (
+              <div className={styles.agendaLine} style={{ left: x(selectedAgendaDay) + px / 2 }} />
+            )}
           {rows.flatMap((row, r) =>
             row.map((s) => {
               const p = preview?.id === s.id ? preview : s;
